@@ -1,4 +1,4 @@
-IF DB_ID(N''CogCrankers'') IS NULL
+IF DB_ID(N'CogCrankers') IS NULL
 BEGIN
     CREATE DATABASE [CogCrankers];
 END;
