@@ -6,5 +6,9 @@ public record CogSessionDto(
     DateTime? CogOutAtUtc,
     int? DurationMinutes,
     bool IsOpen,
+    int WarningIntervalMinutesAtCogIn,
+    int SuccessfulCogChecks,
+    bool AutoCogOutNoPayout,
+    int? PayoutCogs,
     string? CogInNote,
     string? CogOutNote);

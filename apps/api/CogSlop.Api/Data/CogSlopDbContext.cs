@@ -21,6 +21,8 @@ public class CogSlopDbContext(DbContextOptions<CogSlopDbContext> options) : DbCo
 
     public DbSet<MarketplaceListing> MarketplaceListings => Set<MarketplaceListing>();
 
+    public DbSet<CogRuntimeSetting> CogRuntimeSettings => Set<CogRuntimeSetting>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<UserAccount>(entity =>
@@ -124,6 +126,9 @@ public class CogSlopDbContext(DbContextOptions<CogSlopDbContext> options) : DbCo
             entity.ToTable("CogSessions");
             entity.HasKey(x => x.CogSessionId);
             entity.Property(x => x.CogInAtUtc).IsRequired();
+            entity.Property(x => x.WarningIntervalMinutesAtCogIn).IsRequired();
+            entity.Property(x => x.SuccessfulCogChecks).HasDefaultValue(0).IsRequired();
+            entity.Property(x => x.AutoCogOutNoPayout).HasDefaultValue(false).IsRequired();
             entity.Property(x => x.CogInNote).HasMaxLength(300);
             entity.Property(x => x.CogOutNote).HasMaxLength(300);
             entity.HasOne(x => x.UserAccount)
@@ -158,6 +163,19 @@ public class CogSlopDbContext(DbContextOptions<CogSlopDbContext> options) : DbCo
                 .OnDelete(DeleteBehavior.Restrict);
         });
 
+        modelBuilder.Entity<CogRuntimeSetting>(entity =>
+        {
+            entity.ToTable("CogRuntimeSettings");
+            entity.HasKey(x => x.CogRuntimeSettingId);
+            entity.Property(x => x.WarningIntervalMinutes).IsRequired();
+            entity.Property(x => x.UpdatedAtUtc).HasDefaultValueSql("SYSUTCDATETIME()");
+
+            entity.HasOne(x => x.UpdatedByUserAccount)
+                .WithMany(x => x.UpdatedCogRuntimeSettings)
+                .HasForeignKey(x => x.UpdatedByUserAccountId)
+                .OnDelete(DeleteBehavior.SetNull);
+        });
+
         modelBuilder.Entity<UserInventory>()
             .ToTable(t => t.HasCheckConstraint("CK_UserInventories_Quantity", "[Quantity] > 0"));
 
@@ -166,6 +184,15 @@ public class CogSlopDbContext(DbContextOptions<CogSlopDbContext> options) : DbCo
 
         modelBuilder.Entity<CogSession>()
             .ToTable(t => t.HasCheckConstraint("CK_CogSessions_Order", "[CogOutAtUtc] IS NULL OR [CogOutAtUtc] >= [CogInAtUtc]"));
+
+        modelBuilder.Entity<CogSession>()
+            .ToTable(t => t.HasCheckConstraint("CK_CogSessions_WarningInterval", "[WarningIntervalMinutesAtCogIn] >= 5"));
+
+        modelBuilder.Entity<CogSession>()
+            .ToTable(t => t.HasCheckConstraint("CK_CogSessions_SuccessfulCogChecks", "[SuccessfulCogChecks] >= 0"));
+
+        modelBuilder.Entity<CogSession>()
+            .ToTable(t => t.HasCheckConstraint("CK_CogSessions_PayoutCogs", "[PayoutCogs] IS NULL OR [PayoutCogs] >= 0"));
 
         modelBuilder.Entity<MarketplaceListing>()
             .ToTable(t => t.HasCheckConstraint("CK_MarketplaceListings_Quantity", "[Quantity] > 0"));
@@ -180,5 +207,8 @@ public class CogSlopDbContext(DbContextOptions<CogSlopDbContext> options) : DbCo
             .ToTable(t => t.HasCheckConstraint(
                 "CK_MarketplaceListings_SoldAt",
                 "([ListingStatus] <> N'Sold' AND [SoldAtUtc] IS NULL) OR ([ListingStatus] = N'Sold' AND [SoldAtUtc] IS NOT NULL)"));
+
+        modelBuilder.Entity<CogRuntimeSetting>()
+            .ToTable(t => t.HasCheckConstraint("CK_CogRuntimeSettings_WarningInterval", "[WarningIntervalMinutes] >= 5"));
     }
 }
