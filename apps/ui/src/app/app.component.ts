@@ -350,8 +350,8 @@ export class AppComponent implements OnInit {
 
   sessionDurationLabel(session: CogSession): string {
     if (session.isOpen) {
-      const startedAt = new Date(session.cogInAtUtc).getTime();
-      if (Number.isNaN(startedAt)) {
+      const startedAt = this.toUtcMilliseconds(session.cogInAtUtc);
+      if (startedAt === null) {
         return 'In progress';
       }
 
@@ -553,6 +553,17 @@ export class AppComponent implements OnInit {
     }
 
     return `${hours}h ${minutes}m`;
+  }
+
+  private toUtcMilliseconds(value: string | null | undefined): number | null {
+    if (!value) {
+      return null;
+    }
+
+    const hasOffset = /([zZ]|[+-]\d{2}:\d{2})$/.test(value);
+    const normalized = hasOffset ? value : `${value}Z`;
+    const parsed = Date.parse(normalized);
+    return Number.isNaN(parsed) ? null : parsed;
   }
 
   private createEmptyGearForm(): UpsertGearPayload {

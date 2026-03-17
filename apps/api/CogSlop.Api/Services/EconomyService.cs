@@ -478,30 +478,50 @@ public class EconomyService(
     {
         var user = await currentUserService.EnsureUserAsync(principal, cancellationToken);
 
-        return await dbContext.CogSessions
+        var sessions = await dbContext.CogSessions
             .AsNoTracking()
             .Where(x => x.UserAccountId == user.UserAccountId)
             .OrderByDescending(x => x.CogInAtUtc)
             .Take(take)
-            .Select(x => new CogSessionDto(
+            .Select(x => new
+            {
                 x.CogSessionId,
                 x.CogInAtUtc,
                 x.CogOutAtUtc,
-                x.CogOutAtUtc == null ? null : EF.Functions.DateDiffMinute(x.CogInAtUtc, x.CogOutAtUtc.Value),
-                x.CogOutAtUtc == null,
                 x.CogInNote,
-                x.CogOutNote))
+                x.CogOutNote,
+            })
             .ToListAsync(cancellationToken);
+
+        return sessions
+            .Select(x =>
+            {
+                var cogInAtUtc = AsUtc(x.CogInAtUtc);
+                var cogOutAtUtc = x.CogOutAtUtc.HasValue ? AsUtc(x.CogOutAtUtc.Value) : (DateTime?)null;
+
+                return new CogSessionDto(
+                    x.CogSessionId,
+                    cogInAtUtc,
+                    cogOutAtUtc,
+                    cogOutAtUtc == null ? null : CalculateDurationMinutes(cogInAtUtc, cogOutAtUtc.Value),
+                    cogOutAtUtc == null,
+                    x.CogInNote,
+                    x.CogOutNote);
+            })
+            .ToList();
     }
 
     private static CogSessionDto ToCogSessionDto(CogSession session)
     {
+        var cogInAtUtc = AsUtc(session.CogInAtUtc);
+        var cogOutAtUtc = session.CogOutAtUtc.HasValue ? AsUtc(session.CogOutAtUtc.Value) : (DateTime?)null;
+
         return new CogSessionDto(
             session.CogSessionId,
-            session.CogInAtUtc,
-            session.CogOutAtUtc,
-            session.CogOutAtUtc == null ? null : CalculateDurationMinutes(session.CogInAtUtc, session.CogOutAtUtc.Value),
-            session.CogOutAtUtc == null,
+            cogInAtUtc,
+            cogOutAtUtc,
+            cogOutAtUtc == null ? null : CalculateDurationMinutes(cogInAtUtc, cogOutAtUtc.Value),
+            cogOutAtUtc == null,
             session.CogInNote,
             session.CogOutNote);
     }
@@ -509,6 +529,16 @@ public class EconomyService(
     private static int CalculateDurationMinutes(DateTime startedAtUtc, DateTime endedAtUtc)
     {
         return Math.Max(0, (int)Math.Floor((endedAtUtc - startedAtUtc).TotalMinutes));
+    }
+
+    private static DateTime AsUtc(DateTime value)
+    {
+        return value.Kind switch
+        {
+            DateTimeKind.Utc => value,
+            DateTimeKind.Local => value.ToUniversalTime(),
+            _ => DateTime.SpecifyKind(value, DateTimeKind.Utc),
+        };
     }
 
     private static string? Normalize(string? value)
