@@ -1,0 +1,368 @@
+:host {
+  --bg-iron: #1b232b;
+  --bg-smoke: #283844;
+  --panel: rgba(17, 27, 34, 0.88);
+  --panel-edge: rgba(227, 167, 86, 0.35);
+  --ink: #eff4ef;
+  --muted: #b8c6b5;
+  --accent: #ffad49;
+  --accent-deep: #db7d2a;
+  --signal: #6bd6c3;
+  --danger: #ff8f88;
+  color: var(--ink);
+  display: block;
+  min-height: 100vh;
+  font-family: 'Space Grotesk', 'Segoe UI', sans-serif;
+  background:
+    radial-gradient(circle at 10% 10%, rgba(255, 173, 73, 0.18) 0%, transparent 38%),
+    radial-gradient(circle at 88% 22%, rgba(107, 214, 195, 0.16) 0%, transparent 34%),
+    linear-gradient(150deg, var(--bg-iron), var(--bg-smoke));
+}
+
+.workshop-shell {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2.2rem 1rem 4rem;
+  position: relative;
+  display: grid;
+  gap: 1rem;
+}
+
+.panel {
+  border: 1px solid var(--panel-edge);
+  background: var(--panel);
+  border-radius: 18px;
+  padding: 1.2rem;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.28);
+  backdrop-filter: blur(6px);
+  animation: rise-in 520ms ease both;
+}
+
+.masthead h1 {
+  margin: 0.15rem 0 0.45rem;
+  font-size: clamp(1.8rem, 4vw, 3rem);
+  font-family: 'Bungee', 'Segoe UI', sans-serif;
+  letter-spacing: 0.04em;
+}
+
+.eyebrow {
+  color: var(--signal);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin: 0;
+}
+
+.masthead p {
+  max-width: 72ch;
+  color: var(--muted);
+}
+
+.masthead-actions {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.btn {
+  border: none;
+  border-radius: 999px;
+  padding: 0.6rem 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 140ms ease, box-shadow 140ms ease, opacity 140ms ease;
+}
+
+.btn:hover {
+  transform: translateY(-1px);
+}
+
+.btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+  transform: none;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--accent), var(--accent-deep));
+  color: #2a1a0c;
+  box-shadow: 0 8px 18px rgba(255, 173, 73, 0.35);
+}
+
+.btn-secondary {
+  background: rgba(107, 214, 195, 0.18);
+  color: var(--ink);
+  border: 1px solid rgba(107, 214, 195, 0.4);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--ink);
+  border: 1px solid rgba(239, 244, 239, 0.35);
+}
+
+.pilot-panel .pilot-title {
+  display: flex;
+  gap: 0.8rem;
+  align-items: center;
+}
+
+.pilot-panel img {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 173, 73, 0.6);
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 0.8rem;
+  margin-top: 1rem;
+}
+
+.stats-grid article {
+  border-radius: 12px;
+  padding: 0.75rem;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.stats-grid h3 {
+  margin: 0;
+  font-size: 0.84rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.stats-grid p {
+  margin: 0.35rem 0 0;
+  font-size: 1.25rem;
+}
+
+.store-grid {
+  margin-top: 0.8rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.85rem;
+}
+
+.gear-card {
+  border-radius: 14px;
+  border: 1px solid rgba(255, 173, 73, 0.25);
+  background: rgba(255, 255, 255, 0.03);
+  padding: 0.9rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.gear-card h3,
+.gear-card p {
+  margin: 0;
+}
+
+.gear-type {
+  color: var(--signal);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.75rem;
+}
+
+.price {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.stock {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.inventory-list {
+  list-style: none;
+  padding: 0;
+  margin: 0.8rem 0 0;
+  display: grid;
+  gap: 0.45rem;
+}
+
+.inventory-list li {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.5rem;
+  align-items: baseline;
+  padding: 0.55rem 0.7rem;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.inventory-list small {
+  grid-column: 1 / -1;
+  color: var(--muted);
+}
+
+.alert {
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+}
+
+.alert-error {
+  border-color: rgba(255, 143, 136, 0.5);
+}
+
+.alert-info {
+  border-color: rgba(107, 214, 195, 0.5);
+}
+
+.admin-layout {
+  margin-top: 0.8rem;
+  display: grid;
+  gap: 0.9rem;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+}
+
+.admin-card {
+  border-radius: 12px;
+  border: 1px solid rgba(255, 173, 73, 0.24);
+  background: rgba(255, 255, 255, 0.03);
+  padding: 0.85rem;
+  display: grid;
+  gap: 0.55rem;
+}
+
+.admin-card--wide {
+  grid-column: 1 / -1;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+th,
+td {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 0.4rem;
+  text-align: left;
+}
+
+label {
+  display: grid;
+  gap: 0.25rem;
+  font-size: 0.9rem;
+}
+
+input,
+select {
+  border: 1px solid rgba(239, 244, 239, 0.2);
+  background: rgba(9, 16, 20, 0.7);
+  color: var(--ink);
+  border-radius: 8px;
+  padding: 0.5rem;
+}
+
+.form-grid {
+  display: grid;
+  gap: 0.6rem;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+}
+
+.form-grid .wide {
+  grid-column: 1 / -1;
+}
+
+.checkbox {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.checkbox input {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+}
+
+.admin-actions {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.gear-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 0.45rem;
+}
+
+.gear-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.65rem;
+  align-items: center;
+  border-radius: 10px;
+  padding: 0.55rem 0.6rem;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.gear-list small {
+  display: block;
+  color: var(--muted);
+}
+
+.orbit-ring {
+  position: absolute;
+  border-radius: 50%;
+  border: 1px dashed rgba(255, 173, 73, 0.18);
+  pointer-events: none;
+}
+
+.orbit-ring--one {
+  width: 320px;
+  height: 320px;
+  top: -60px;
+  right: -70px;
+  animation: spin 26s linear infinite;
+}
+
+.orbit-ring--two {
+  width: 240px;
+  height: 240px;
+  bottom: -40px;
+  left: -70px;
+  animation: spin 18s linear reverse infinite;
+}
+
+@keyframes rise-in {
+  from {
+    transform: translateY(14px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 720px) {
+  .workshop-shell {
+    padding: 1rem 0.75rem 2.5rem;
+  }
+
+  .panel {
+    padding: 0.9rem;
+  }
+}

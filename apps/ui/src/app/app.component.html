@@ -1,0 +1,219 @@
+<main class="workshop-shell">
+  <div class="orbit-ring orbit-ring--one"></div>
+  <div class="orbit-ring orbit-ring--two"></div>
+
+  <header class="masthead panel">
+    <p class="eyebrow">Cog Slop</p>
+    <h1>Spin Up The Cog Economy</h1>
+    <p>
+      Every user is a gear in the grand machine. Admins tune the torque by granting cogs and specialty gear,
+      then pilots spend their cogs in the bazaar.
+    </p>
+
+    <div class="masthead-actions">
+      <button type="button" class="btn btn-secondary" (click)="refreshAll()">Recalibrate Deck</button>
+      <button *ngIf="isAuthenticated" type="button" class="btn btn-ghost" (click)="signOut()">Disengage</button>
+      <button *ngIf="!isAuthenticated" type="button" class="btn btn-primary" (click)="signIn()">Crank In With Google</button>
+    </div>
+  </header>
+
+  <section *ngIf="isLoading" class="panel loading-state">
+    <p>Greasing every sprocket. Stand by...</p>
+  </section>
+
+  <section *ngIf="!isLoading && !isAuthenticated" class="panel login-panel">
+    <h2>Workshop Access Needed</h2>
+    <p>Start with Google auth to enter the machine room.</p>
+    <button type="button" class="btn btn-primary" (click)="signIn()">Start Cog Shift</button>
+  </section>
+
+  <section *ngIf="errorMessage" class="panel alert alert-error">
+    <strong>Gear Slip:</strong>
+    <span>{{ errorMessage }}</span>
+  </section>
+
+  <section *ngIf="infoMessage" class="panel alert alert-info">
+    <strong>Status:</strong>
+    <span>{{ infoMessage }}</span>
+  </section>
+
+  <ng-container *ngIf="!isLoading && isAuthenticated && pilot as user">
+    <section class="panel pilot-panel">
+      <div class="pilot-title">
+        <img *ngIf="user.avatarUrl" [src]="user.avatarUrl" alt="Pilot avatar" />
+        <div>
+          <h2>{{ user.displayName }}</h2>
+          <p>{{ user.email }}</p>
+        </div>
+      </div>
+      <div class="stats-grid">
+        <article>
+          <h3>Cog Balance</h3>
+          <p>{{ user.cogBalance }}</p>
+        </article>
+        <article>
+          <h3>Role Rack</h3>
+          <p>{{ user.roles.join(' / ') }}</p>
+        </article>
+        <article>
+          <h3>Inventory Count</h3>
+          <p>{{ user.inventory.length }}</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="panel store-panel">
+      <h2>Gear Bazaar</h2>
+      <div class="store-grid">
+        <article class="gear-card" *ngFor="let item of storeFront">
+          <p class="gear-type">{{ item.gearType }}</p>
+          <h3>{{ item.name }}</h3>
+          <p>{{ item.description || item.flavorText || 'A precision-forged item for elite cog pilots.' }}</p>
+          <p class="price">{{ item.costInCogs }} cogs</p>
+          <p class="stock" *ngIf="item.stockQuantity !== null && item.stockQuantity !== undefined">
+            Stock: {{ item.stockQuantity }}
+          </p>
+          <button
+            type="button"
+            class="btn btn-primary"
+            [disabled]="item.stockQuantity === 0"
+            (click)="buyGear(item)">
+            Buy Gear
+          </button>
+        </article>
+      </div>
+    </section>
+
+    <section class="panel inventory-panel">
+      <h2>Your Gear Locker</h2>
+      <p *ngIf="user.inventory.length === 0">No gear yet. Start spending cogs to stock your locker.</p>
+      <ul *ngIf="user.inventory.length > 0" class="inventory-list">
+        <li *ngFor="let item of user.inventory">
+          <strong>{{ item.name }}</strong>
+          <span>{{ item.quantity }}x</span>
+          <small>{{ item.gearType }}</small>
+        </li>
+      </ul>
+    </section>
+
+    <section *ngIf="hasAdminPanel" class="panel admin-panel">
+      <h2>Admin Control Sprocket</h2>
+
+      <div class="admin-layout">
+        <article class="admin-card">
+          <h3>Pilot Ledger</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>Pilot</th>
+                <th>Balance</th>
+                <th>Roles</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let account of adminUsers">
+                <td>{{ account.displayName }}</td>
+                <td>{{ account.cogBalance }}</td>
+                <td>{{ account.roles.join(', ') }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </article>
+
+        <article class="admin-card">
+          <h3>Grant Cogs</h3>
+          <label>
+            User
+            <select [(ngModel)]="grantCogsForm.userAccountId" name="grantCogsUser">
+              <option *ngFor="let account of adminUsers" [ngValue]="account.userAccountId">{{ account.displayName }}</option>
+            </select>
+          </label>
+          <label>
+            Amount
+            <input type="number" [(ngModel)]="grantCogsForm.amount" min="1" name="grantCogsAmount" />
+          </label>
+          <label>
+            Note
+            <input type="text" [(ngModel)]="grantCogsForm.note" maxlength="300" name="grantCogsNote" />
+          </label>
+          <button type="button" class="btn btn-primary" (click)="grantCogs()">Inject Cogs</button>
+        </article>
+
+        <article class="admin-card">
+          <h3>Grant Gear</h3>
+          <label>
+            User
+            <select [(ngModel)]="grantGearForm.userAccountId" name="grantGearUser">
+              <option *ngFor="let account of adminUsers" [ngValue]="account.userAccountId">{{ account.displayName }}</option>
+            </select>
+          </label>
+          <label>
+            Gear Item
+            <select [(ngModel)]="grantGearForm.gearItemId" name="grantGearItem">
+              <option *ngFor="let item of adminGearItems" [ngValue]="item.gearItemId">{{ item.name }}</option>
+            </select>
+          </label>
+          <label>
+            Quantity
+            <input type="number" [(ngModel)]="grantGearForm.quantity" min="1" name="grantGearQuantity" />
+          </label>
+          <label>
+            Note
+            <input type="text" [(ngModel)]="grantGearForm.note" maxlength="300" name="grantGearNote" />
+          </label>
+          <button type="button" class="btn btn-primary" (click)="grantGear()">Deploy Gear</button>
+        </article>
+
+        <article class="admin-card admin-card--wide">
+          <h3>{{ editingGearItemId === null ? 'Forge New Gear' : 'Tune Existing Gear' }}</h3>
+          <div class="form-grid">
+            <label>
+              Name
+              <input type="text" [(ngModel)]="gearForm.name" maxlength="120" name="gearName" />
+            </label>
+            <label>
+              Type
+              <input type="text" [(ngModel)]="gearForm.gearType" maxlength="60" name="gearType" />
+            </label>
+            <label>
+              Cost In Cogs
+              <input type="number" [(ngModel)]="gearForm.costInCogs" min="0" name="gearCost" />
+            </label>
+            <label>
+              Stock (leave blank for unlimited)
+              <input type="number" [(ngModel)]="gearForm.stockQuantity" min="0" name="gearStock" />
+            </label>
+            <label class="wide">
+              Description
+              <input type="text" [(ngModel)]="gearForm.description" maxlength="600" name="gearDescription" />
+            </label>
+            <label class="wide">
+              Flavor Text
+              <input type="text" [(ngModel)]="gearForm.flavorText" maxlength="300" name="gearFlavor" />
+            </label>
+            <label class="wide checkbox">
+              <input type="checkbox" [(ngModel)]="gearForm.isActive" name="gearActive" />
+              Available in bazaar
+            </label>
+          </div>
+
+          <div class="admin-actions">
+            <button type="button" class="btn btn-primary" (click)="saveGearItem()">Save Gear</button>
+            <button *ngIf="editingGearItemId !== null" type="button" class="btn btn-ghost" (click)="cancelGearEdit()">Cancel Edit</button>
+          </div>
+
+          <h4>Existing Gear Catalog</h4>
+          <ul class="gear-list">
+            <li *ngFor="let item of adminGearItems">
+              <div>
+                <strong>{{ item.name }}</strong>
+                <small>{{ item.gearType }} - {{ item.costInCogs }} cogs</small>
+              </div>
+              <button type="button" class="btn btn-secondary" (click)="startEditGearItem(item)">Edit</button>
+            </li>
+          </ul>
+        </article>
+      </div>
+    </section>
+  </ng-container>
+</main>
