@@ -13,3 +13,6 @@
 # OS
 .DS_Store
 Thumbs.db
+apps/ui/.vscode/extensions.json
+apps/ui/.vscode/launch.json
+apps/ui/.vscode/tasks.json
