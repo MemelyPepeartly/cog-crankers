@@ -93,8 +93,39 @@ export interface CogSession {
   cogOutAtUtc?: string | null;
   durationMinutes?: number | null;
   isOpen: boolean;
+  warningIntervalMinutesAtCogIn: number;
+  successfulCogChecks: number;
+  autoCogOutNoPayout: boolean;
+  payoutCogs?: number | null;
   cogInNote?: string | null;
   cogOutNote?: string | null;
+}
+
+export interface CogRuntimeSettings {
+  warningIntervalMinutes: number;
+  updatedAtUtc: string;
+  updatedByUserAccountId?: number | null;
+  updatedByDisplayName?: string | null;
+}
+
+export interface UpdateCogWarningIntervalPayload {
+  warningIntervalMinutes: number;
+}
+
+export interface CogCheckStatus {
+  hasOpenSession: boolean;
+  cogSessionId?: number | null;
+  requiresCogCheck: boolean;
+  spinsRequired: number;
+  successfulCogChecks: number;
+  requiredCogChecks: number;
+  warningIntervalMinutes: number;
+  cogInAtUtc?: string | null;
+  nextCogCheckAtUtc?: string | null;
+  cogCheckDeadlineAtUtc?: string | null;
+  autoCoggedOutNoPayout: boolean;
+  cogOutAtUtc?: string | null;
+  payoutCogs?: number | null;
 }
 
 export interface AdminUserSummary {

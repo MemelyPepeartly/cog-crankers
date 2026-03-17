@@ -1,10 +1,12 @@
 import { CommonModule } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { catchError, firstValueFrom, forkJoin, of } from 'rxjs';
 import {
   AdminUserSummary,
+  CogCheckStatus,
+  CogRuntimeSettings,
   CogSession,
   CraftGearPayload,
   CreateMarketplaceListingPayload,
@@ -14,6 +16,7 @@ import {
   InventoryItem,
   MarketplaceListing,
   StoreItem,
+  UpdateCogWarningIntervalPayload,
   UpsertGearPayload,
   UserProfile
 } from './models/economy.models';
@@ -29,7 +32,7 @@ type LockerSort = 'quantityDesc' | 'nameAsc' | 'typeAsc' | 'valueDesc';
   templateUrl: './app.component.html',
   styleUrl: './app.component.scss'
 })
-export class AppComponent implements OnInit {
+export class AppComponent implements OnInit, OnDestroy {
   private readonly api = inject(EconomyApiService);
 
   isLoading = true;
@@ -41,8 +44,13 @@ export class AppComponent implements OnInit {
   dashboard: DashboardResponse | null = null;
   marketplaceListings: MarketplaceListing[] = [];
   cogSessionHistory: CogSession[] = [];
+  cogCheckStatus: CogCheckStatus | null = null;
+  cogRuntimeSettings: CogRuntimeSettings | null = null;
   adminUsers: AdminUserSummary[] = [];
   adminGearItems: StoreItem[] = [];
+  warningIntervalForm: UpdateCogWarningIntervalPayload = {
+    warningIntervalMinutes: 60
+  };
 
   grantCogsForm: GrantCogsPayload = {
     userAccountId: 0,
@@ -74,9 +82,18 @@ export class AppComponent implements OnInit {
   lockerSearch = '';
   lockerFilterType = 'All';
   lockerSort: LockerSort = 'quantityDesc';
+  showCogCheckOverlay = false;
+  cogCheckSpinCount = 0;
+  cogCheckHandleRotation = 0;
+  private cogCheckPollHandle: ReturnType<typeof setInterval> | null = null;
+  private lastNotifiedAutoCogOutSessionId: number | null = null;
 
   async ngOnInit(): Promise<void> {
     await this.refreshAll();
+  }
+
+  ngOnDestroy(): void {
+    this.stopCogCheckPolling();
   }
 
   get pilot(): UserProfile | null {
@@ -96,7 +113,24 @@ export class AppComponent implements OnInit {
   }
 
   get hasOpenCogSession(): boolean {
-    return this.openCogSession !== null;
+    return this.cogCheckStatus?.hasOpenSession ?? this.openCogSession !== null;
+  }
+
+  get cogCheckSpinsRequired(): number {
+    return this.cogCheckStatus?.spinsRequired ?? 15;
+  }
+
+  get cogCheckSpinsRemaining(): number {
+    return Math.max(0, this.cogCheckSpinsRequired - this.cogCheckSpinCount);
+  }
+
+  get cogCheckCountdownSeconds(): number {
+    const deadline = this.toUtcMilliseconds(this.cogCheckStatus?.cogCheckDeadlineAtUtc);
+    if (deadline === null) {
+      return 0;
+    }
+
+    return Math.max(0, Math.ceil((deadline - Date.now()) / 1000));
   }
 
   get selectedListingItem(): UserProfile['inventory'][number] | null {
@@ -203,8 +237,13 @@ export class AppComponent implements OnInit {
     this.dashboard = null;
     this.marketplaceListings = [];
     this.cogSessionHistory = [];
+    this.cogCheckStatus = null;
+    this.showCogCheckOverlay = false;
+    this.resetCogCheckHandle();
+    this.stopCogCheckPolling();
     this.adminUsers = [];
     this.adminGearItems = [];
+    this.cogRuntimeSettings = null;
     this.activePage = 'pilot';
     this.infoMessage = 'Session terminated. Your cogs remain on file with the Authority.';
   }
@@ -231,8 +270,13 @@ export class AppComponent implements OnInit {
         this.dashboard = null;
         this.marketplaceListings = [];
         this.cogSessionHistory = [];
+        this.cogCheckStatus = null;
+        this.showCogCheckOverlay = false;
+        this.resetCogCheckHandle();
+        this.stopCogCheckPolling();
         this.adminUsers = [];
         this.adminGearItems = [];
+        this.cogRuntimeSettings = null;
         this.activePage = 'pilot';
         this.infoMessage = 'No active session. The economy continues without you.';
         return;
@@ -241,13 +285,16 @@ export class AppComponent implements OnInit {
       this.isAuthenticated = true;
       this.dashboard = dashboard;
       await this.loadMarketplaceAndSessions();
+      await this.refreshCogCheckStatus();
       this.ensureListingFormTargets();
+      this.startCogCheckPolling();
 
       if (dashboard.pilot.isAdmin) {
         await this.loadAdminPanel();
       } else {
         this.adminUsers = [];
         this.adminGearItems = [];
+        this.cogRuntimeSettings = null;
 
         if (this.activePage === 'admin') {
           this.activePage = 'pilot';
@@ -368,7 +415,8 @@ export class AppComponent implements OnInit {
 
     try {
       const session = await firstValueFrom(this.api.cogOut(this.normalizeText(this.cogOutNote)));
-      this.infoMessage = `Cog-out recorded. Shift duration: ${this.formatDurationMinutes(session.durationMinutes)}.`;
+      const payout = session.payoutCogs ?? 0;
+      this.infoMessage = `Cog-out recorded. Shift duration: ${this.formatDurationMinutes(session.durationMinutes)}. Payout: ${payout} cogs.`;
       this.cogOutNote = '';
       await this.refreshAll();
       this.setPage('timecard');
@@ -414,6 +462,67 @@ export class AppComponent implements OnInit {
     }
 
     return this.formatDurationMinutes(session.durationMinutes);
+  }
+
+  spinCogHandle(): void {
+    if (!this.showCogCheckOverlay) {
+      return;
+    }
+
+    if (this.cogCheckSpinCount >= this.cogCheckSpinsRequired) {
+      return;
+    }
+
+    this.cogCheckSpinCount += 1;
+    this.cogCheckHandleRotation += 26;
+  }
+
+  async submitCogCheck(): Promise<void> {
+    if (!this.cogCheckStatus?.requiresCogCheck) {
+      this.errorMessage = 'No cog check is currently active.';
+      return;
+    }
+
+    if (this.cogCheckSpinCount < this.cogCheckSpinsRequired) {
+      this.errorMessage = `Spin the handle ${this.cogCheckSpinsRequired} times before submitting cog check.`;
+      return;
+    }
+
+    this.errorMessage = '';
+
+    try {
+      const status = await firstValueFrom(this.api.completeCogCheck(this.cogCheckSpinCount));
+      this.applyCogCheckStatus(status, true);
+
+      if (!status.requiresCogCheck) {
+        this.infoMessage = 'Cog check passed. Shift remains active.';
+        await this.refreshAll();
+      } else {
+        this.infoMessage = 'Cog check logged. Another check is already due.';
+      }
+    } catch (error) {
+      this.captureError(error, 'Cog check submission failed.');
+    }
+  }
+
+  async saveWarningInterval(): Promise<void> {
+    const minutes = Math.floor(this.warningIntervalForm.warningIntervalMinutes);
+    if (minutes < 5 || minutes > 720) {
+      this.errorMessage = 'Warning interval must be between 5 and 720 minutes.';
+      return;
+    }
+
+    this.errorMessage = '';
+
+    try {
+      const settings = await firstValueFrom(this.api.updateCogWarningInterval({ warningIntervalMinutes: minutes }));
+      this.cogRuntimeSettings = settings;
+      this.warningIntervalForm.warningIntervalMinutes = settings.warningIntervalMinutes;
+      this.infoMessage = `Global cog-check interval set to ${settings.warningIntervalMinutes} minute(s).`;
+      await this.refreshCogCheckStatus();
+    } catch (error) {
+      this.captureError(error, 'Warning interval update failed.');
+    }
   }
 
   async grantCogs(): Promise<void> {
@@ -502,16 +611,86 @@ export class AppComponent implements OnInit {
     }
   }
 
+  private async refreshCogCheckStatus(): Promise<void> {
+    const status = await firstValueFrom(this.api.getCogCheckStatus());
+    this.applyCogCheckStatus(status, true);
+  }
+
+  private applyCogCheckStatus(status: CogCheckStatus, shouldNotifyAutoCogOut: boolean): void {
+    const hadOpenSession = this.cogCheckStatus?.hasOpenSession ?? false;
+    this.cogCheckStatus = status;
+
+    const overlayWasVisible = this.showCogCheckOverlay;
+    this.showCogCheckOverlay = status.hasOpenSession && status.requiresCogCheck;
+
+    if (!overlayWasVisible && this.showCogCheckOverlay) {
+      this.resetCogCheckHandle();
+    }
+
+    if (!this.showCogCheckOverlay) {
+      this.resetCogCheckHandle();
+    }
+
+    if (shouldNotifyAutoCogOut
+      && status.autoCoggedOutNoPayout
+      && status.cogSessionId
+      && this.lastNotifiedAutoCogOutSessionId !== status.cogSessionId) {
+      this.lastNotifiedAutoCogOutSessionId = status.cogSessionId;
+      this.infoMessage = 'Auto cog-out triggered after missed cog check. No payout issued for that shift.';
+    }
+
+    if (hadOpenSession && !status.hasOpenSession) {
+      void this.loadMarketplaceAndSessions();
+    }
+  }
+
+  private startCogCheckPolling(): void {
+    this.stopCogCheckPolling();
+    this.cogCheckPollHandle = setInterval(() => {
+      if (!this.isAuthenticated) {
+        return;
+      }
+
+      void this.pollCogCheckStatus();
+    }, 30000);
+  }
+
+  private stopCogCheckPolling(): void {
+    if (this.cogCheckPollHandle === null) {
+      return;
+    }
+
+    clearInterval(this.cogCheckPollHandle);
+    this.cogCheckPollHandle = null;
+  }
+
+  private async pollCogCheckStatus(): Promise<void> {
+    try {
+      const status = await firstValueFrom(this.api.getCogCheckStatus());
+      this.applyCogCheckStatus(status, true);
+    } catch {
+      // Poll failures are ignored and retried next interval.
+    }
+  }
+
+  private resetCogCheckHandle(): void {
+    this.cogCheckSpinCount = 0;
+    this.cogCheckHandleRotation = 0;
+  }
+
   private async loadAdminPanel(): Promise<void> {
     const data = await firstValueFrom(
       forkJoin({
         users: this.api.getAdminUsers(),
-        gearItems: this.api.getAdminGearItems(true)
+        gearItems: this.api.getAdminGearItems(true),
+        cogSettings: this.api.getCogRuntimeSettings()
       })
     );
 
     this.adminUsers = data.users;
     this.adminGearItems = data.gearItems;
+    this.cogRuntimeSettings = data.cogSettings;
+    this.warningIntervalForm.warningIntervalMinutes = data.cogSettings.warningIntervalMinutes;
 
     if (this.adminUsers.length > 0) {
       if (!this.grantCogsForm.userAccountId) {

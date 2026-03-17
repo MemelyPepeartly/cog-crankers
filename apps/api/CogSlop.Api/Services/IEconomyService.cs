@@ -34,4 +34,11 @@ public interface IEconomyService
         ClaimsPrincipal principal,
         int take,
         CancellationToken cancellationToken);
+
+    Task<CogCheckStatusDto> GetCogCheckStatusAsync(ClaimsPrincipal principal, CancellationToken cancellationToken);
+
+    Task<CogCheckStatusDto> CompleteCogCheckAsync(
+        ClaimsPrincipal principal,
+        CompleteCogCheckRequest request,
+        CancellationToken cancellationToken);
 }

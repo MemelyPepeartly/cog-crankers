@@ -73,6 +73,12 @@ public class AdminService(
             .ToListAsync(cancellationToken);
     }
 
+    public async Task<CogRuntimeSettingsDto> GetCogRuntimeSettingsAsync(CancellationToken cancellationToken)
+    {
+        var settings = await GetOrCreateRuntimeSettingsAsync(cancellationToken);
+        return await BuildRuntimeSettingsDtoAsync(settings, cancellationToken);
+    }
+
     public async Task<AdminUserSummaryDto> GrantCogsAsync(
         ClaimsPrincipal adminPrincipal,
         GrantCogsRequest request,
@@ -249,5 +255,71 @@ public class AdminService(
             gear.StockQuantity,
             gear.IsActive,
             gear.FlavorText);
+    }
+
+    public async Task<CogRuntimeSettingsDto> UpdateWarningIntervalAsync(
+        ClaimsPrincipal adminPrincipal,
+        UpdateCogWarningIntervalRequest request,
+        CancellationToken cancellationToken)
+    {
+        var admin = await currentUserService.EnsureUserAsync(adminPrincipal, cancellationToken);
+
+        if (request.WarningIntervalMinutes < CogCheckRules.MinimumWarningIntervalMinutes
+            || request.WarningIntervalMinutes > CogCheckRules.MaximumWarningIntervalMinutes)
+        {
+            throw new InvalidOperationException(
+                $"Warning interval must be between {CogCheckRules.MinimumWarningIntervalMinutes} and {CogCheckRules.MaximumWarningIntervalMinutes} minutes.");
+        }
+
+        var settings = await GetOrCreateRuntimeSettingsAsync(cancellationToken);
+        settings.WarningIntervalMinutes = request.WarningIntervalMinutes;
+        settings.UpdatedAtUtc = DateTime.UtcNow;
+        settings.UpdatedByUserAccountId = admin.UserAccountId;
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return await BuildRuntimeSettingsDtoAsync(settings, cancellationToken);
+    }
+
+    private async Task<CogRuntimeSetting> GetOrCreateRuntimeSettingsAsync(CancellationToken cancellationToken)
+    {
+        var settings = await dbContext.CogRuntimeSettings
+            .OrderBy(x => x.CogRuntimeSettingId)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (settings is not null)
+        {
+            return settings;
+        }
+
+        settings = new CogRuntimeSetting
+        {
+            WarningIntervalMinutes = 60,
+            UpdatedAtUtc = DateTime.UtcNow,
+            UpdatedByUserAccountId = null,
+        };
+
+        dbContext.CogRuntimeSettings.Add(settings);
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return settings;
+    }
+
+    private async Task<CogRuntimeSettingsDto> BuildRuntimeSettingsDtoAsync(
+        CogRuntimeSetting settings,
+        CancellationToken cancellationToken)
+    {
+        string? updatedByDisplayName = null;
+        if (settings.UpdatedByUserAccountId.HasValue)
+        {
+            updatedByDisplayName = await dbContext.UserAccounts
+                .Where(x => x.UserAccountId == settings.UpdatedByUserAccountId.Value)
+                .Select(x => x.DisplayName)
+                .FirstOrDefaultAsync(cancellationToken);
+        }
+
+        return new CogRuntimeSettingsDto(
+            settings.WarningIntervalMinutes,
+            settings.UpdatedAtUtc,
+            settings.UpdatedByUserAccountId,
+            updatedByDisplayName);
     }
 }

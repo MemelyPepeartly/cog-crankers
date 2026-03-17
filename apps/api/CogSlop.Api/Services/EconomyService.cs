@@ -407,18 +407,34 @@ public class EconomyService(
         var user = await currentUserService.EnsureUserAsync(principal, cancellationToken);
         var now = DateTime.UtcNow;
 
-        var hasOpenSession = await dbContext.CogSessions
-            .AnyAsync(x => x.UserAccountId == user.UserAccountId && x.CogOutAtUtc == null, cancellationToken);
-
-        if (hasOpenSession)
+        var existingOpenSession = await GetOpenCogSessionAsync(user.UserAccountId, cancellationToken);
+        if (existingOpenSession is not null)
         {
-            throw new InvalidOperationException("You are already cogged in. Cog out before starting a new shift.");
+            var existingState = EvaluateCogCheck(existingOpenSession, now);
+            if (existingState.DeadlineMissed)
+            {
+                await AutoCogOutNoPayoutAsync(
+                    existingOpenSession,
+                    now,
+                    "Auto-cogged out: cog check timed out.",
+                    cancellationToken);
+            }
+            else
+            {
+                throw new InvalidOperationException("You are already cogged in. Cog out before starting a new shift.");
+            }
         }
+
+        var warningIntervalMinutes = await GetWarningIntervalMinutesAsync(cancellationToken);
 
         var session = new CogSession
         {
             UserAccountId = user.UserAccountId,
             CogInAtUtc = now,
+            WarningIntervalMinutesAtCogIn = warningIntervalMinutes,
+            SuccessfulCogChecks = 0,
+            AutoCogOutNoPayout = false,
+            PayoutCogs = null,
             CogInNote = Normalize(request.Note),
         };
 
@@ -444,26 +460,44 @@ public class EconomyService(
         var user = await currentUserService.EnsureUserAsync(principal, cancellationToken);
         var now = DateTime.UtcNow;
 
-        var session = await dbContext.CogSessions
-            .Where(x => x.UserAccountId == user.UserAccountId && x.CogOutAtUtc == null)
-            .OrderByDescending(x => x.CogInAtUtc)
-            .FirstOrDefaultAsync(cancellationToken);
+        var session = await GetOpenCogSessionAsync(user.UserAccountId, cancellationToken);
 
         if (session is null)
         {
             throw new InvalidOperationException("No active shift found. Cog in first.");
         }
 
+        var cogCheckState = EvaluateCogCheck(session, now);
+        if (cogCheckState.DeadlineMissed)
+        {
+            await AutoCogOutNoPayoutAsync(
+                session,
+                now,
+                "Auto-cogged out: cog check timed out before manual cog-out.",
+                cancellationToken);
+
+            return ToCogSessionDto(session);
+        }
+
+        if (cogCheckState.RequiresCheck)
+        {
+            throw new InvalidOperationException("Complete the current cog check before cogging out to receive payout.");
+        }
+
+        var durationMinutes = CalculateDurationMinutes(session.CogInAtUtc, now);
+        var payoutCogs = CalculatePayoutCogs(session.CogInAtUtc, now);
+
         session.CogOutAtUtc = now;
         session.CogOutNote = Normalize(request.Note);
-        var durationMinutes = CalculateDurationMinutes(session.CogInAtUtc, now);
+        session.AutoCogOutNoPayout = false;
+        session.PayoutCogs = payoutCogs;
 
         dbContext.CogTransactions.Add(new CogTransaction
         {
             UserAccountId = user.UserAccountId,
-            Amount = 0,
+            Amount = payoutCogs,
             TransactionType = CogTransactionTypes.CogOut,
-            Description = $"Cogged out after {durationMinutes} minute(s).",
+            Description = $"Cogged out after {durationMinutes} minute(s). Payout: {payoutCogs} cogs.",
             CreatedAtUtc = now,
         });
 
@@ -477,6 +511,7 @@ public class EconomyService(
         CancellationToken cancellationToken)
     {
         var user = await currentUserService.EnsureUserAsync(principal, cancellationToken);
+        await AutoCloseExpiredSessionIfNeededAsync(user.UserAccountId, DateTime.UtcNow, cancellationToken);
 
         var sessions = await dbContext.CogSessions
             .AsNoTracking()
@@ -488,6 +523,10 @@ public class EconomyService(
                 x.CogSessionId,
                 x.CogInAtUtc,
                 x.CogOutAtUtc,
+                x.WarningIntervalMinutesAtCogIn,
+                x.SuccessfulCogChecks,
+                x.AutoCogOutNoPayout,
+                x.PayoutCogs,
                 x.CogInNote,
                 x.CogOutNote,
             })
@@ -505,10 +544,101 @@ public class EconomyService(
                     cogOutAtUtc,
                     cogOutAtUtc == null ? null : CalculateDurationMinutes(cogInAtUtc, cogOutAtUtc.Value),
                     cogOutAtUtc == null,
+                    NormalizeWarningInterval(x.WarningIntervalMinutesAtCogIn),
+                    Math.Max(0, x.SuccessfulCogChecks),
+                    x.AutoCogOutNoPayout,
+                    x.PayoutCogs,
                     x.CogInNote,
                     x.CogOutNote);
             })
             .ToList();
+    }
+
+    public async Task<CogCheckStatusDto> GetCogCheckStatusAsync(
+        ClaimsPrincipal principal,
+        CancellationToken cancellationToken)
+    {
+        var user = await currentUserService.EnsureUserAsync(principal, cancellationToken);
+        var now = DateTime.UtcNow;
+
+        var openSession = await GetOpenCogSessionAsync(user.UserAccountId, cancellationToken);
+        if (openSession is not null)
+        {
+            var checkState = EvaluateCogCheck(openSession, now);
+            if (checkState.DeadlineMissed)
+            {
+                await AutoCogOutNoPayoutAsync(
+                    openSession,
+                    now,
+                    "Auto-cogged out: cog check timed out.",
+                    cancellationToken);
+            }
+            else
+            {
+                return BuildOpenCogCheckStatus(openSession, checkState);
+            }
+        }
+
+        var latestSession = await dbContext.CogSessions
+            .AsNoTracking()
+            .Where(x => x.UserAccountId == user.UserAccountId)
+            .OrderByDescending(x => x.CogInAtUtc)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        return BuildClosedCogCheckStatus(latestSession);
+    }
+
+    public async Task<CogCheckStatusDto> CompleteCogCheckAsync(
+        ClaimsPrincipal principal,
+        CompleteCogCheckRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (request.SpinsCompleted < CogCheckRules.SpinsRequired)
+        {
+            throw new InvalidOperationException($"Spin the handle at least {CogCheckRules.SpinsRequired} times to pass cog check.");
+        }
+
+        var user = await currentUserService.EnsureUserAsync(principal, cancellationToken);
+        var now = DateTime.UtcNow;
+
+        var session = await GetOpenCogSessionAsync(user.UserAccountId, cancellationToken);
+        if (session is null)
+        {
+            throw new InvalidOperationException("No active shift found. Cog in first.");
+        }
+
+        var checkState = EvaluateCogCheck(session, now);
+        if (checkState.DeadlineMissed)
+        {
+            await AutoCogOutNoPayoutAsync(
+                session,
+                now,
+                "Auto-cogged out: cog check timed out.",
+                cancellationToken);
+
+            return BuildClosedCogCheckStatus(session);
+        }
+
+        if (!checkState.RequiresCheck)
+        {
+            throw new InvalidOperationException("No cog check is currently required.");
+        }
+
+        session.SuccessfulCogChecks += 1;
+
+        dbContext.CogTransactions.Add(new CogTransaction
+        {
+            UserAccountId = user.UserAccountId,
+            Amount = 0,
+            TransactionType = CogTransactionTypes.CogCheckCompleted,
+            Description = $"Cog check completed with {request.SpinsCompleted} handle spins.",
+            CreatedAtUtc = now,
+        });
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        var postCheckState = EvaluateCogCheck(session, now);
+        return BuildOpenCogCheckStatus(session, postCheckState);
     }
 
     private static CogSessionDto ToCogSessionDto(CogSession session)
@@ -522,6 +652,10 @@ public class EconomyService(
             cogOutAtUtc,
             cogOutAtUtc == null ? null : CalculateDurationMinutes(cogInAtUtc, cogOutAtUtc.Value),
             cogOutAtUtc == null,
+            NormalizeWarningInterval(session.WarningIntervalMinutesAtCogIn),
+            Math.Max(0, session.SuccessfulCogChecks),
+            session.AutoCogOutNoPayout,
+            session.PayoutCogs,
             session.CogInNote,
             session.CogOutNote);
     }
@@ -529,6 +663,179 @@ public class EconomyService(
     private static int CalculateDurationMinutes(DateTime startedAtUtc, DateTime endedAtUtc)
     {
         return Math.Max(0, (int)Math.Floor((endedAtUtc - startedAtUtc).TotalMinutes));
+    }
+
+    private static int CalculatePayoutCogs(DateTime startedAtUtc, DateTime endedAtUtc)
+    {
+        return Math.Max(0, (int)Math.Floor((endedAtUtc - startedAtUtc).TotalHours));
+    }
+
+    private async Task<int> GetWarningIntervalMinutesAsync(CancellationToken cancellationToken)
+    {
+        var settings = await dbContext.CogRuntimeSettings
+            .OrderBy(x => x.CogRuntimeSettingId)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (settings is null)
+        {
+            settings = new CogRuntimeSetting
+            {
+                WarningIntervalMinutes = 60,
+                UpdatedAtUtc = DateTime.UtcNow,
+                UpdatedByUserAccountId = null,
+            };
+
+            dbContext.CogRuntimeSettings.Add(settings);
+            await dbContext.SaveChangesAsync(cancellationToken);
+        }
+
+        return NormalizeWarningInterval(settings.WarningIntervalMinutes);
+    }
+
+    private async Task<CogSession?> GetOpenCogSessionAsync(int userAccountId, CancellationToken cancellationToken)
+    {
+        return await dbContext.CogSessions
+            .Where(x => x.UserAccountId == userAccountId && x.CogOutAtUtc == null)
+            .OrderByDescending(x => x.CogInAtUtc)
+            .FirstOrDefaultAsync(cancellationToken);
+    }
+
+    private async Task AutoCloseExpiredSessionIfNeededAsync(int userAccountId, DateTime nowUtc, CancellationToken cancellationToken)
+    {
+        var session = await GetOpenCogSessionAsync(userAccountId, cancellationToken);
+        if (session is null)
+        {
+            return;
+        }
+
+        var checkState = EvaluateCogCheck(session, nowUtc);
+        if (!checkState.DeadlineMissed)
+        {
+            return;
+        }
+
+        await AutoCogOutNoPayoutAsync(
+            session,
+            nowUtc,
+            "Auto-cogged out: cog check timed out.",
+            cancellationToken);
+    }
+
+    private async Task AutoCogOutNoPayoutAsync(
+        CogSession session,
+        DateTime nowUtc,
+        string reason,
+        CancellationToken cancellationToken)
+    {
+        if (session.CogOutAtUtc.HasValue)
+        {
+            return;
+        }
+
+        session.CogOutAtUtc = nowUtc;
+        session.AutoCogOutNoPayout = true;
+        session.PayoutCogs = 0;
+        session.CogOutNote = string.IsNullOrWhiteSpace(session.CogOutNote) ? reason : session.CogOutNote;
+
+        dbContext.CogTransactions.Add(new CogTransaction
+        {
+            UserAccountId = session.UserAccountId,
+            Amount = 0,
+            TransactionType = CogTransactionTypes.CogOutNoPayout,
+            Description = reason,
+            CreatedAtUtc = nowUtc,
+        });
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+    }
+
+    private static CogCheckEvaluation EvaluateCogCheck(CogSession session, DateTime nowUtc)
+    {
+        var cogInAtUtc = AsUtc(session.CogInAtUtc);
+        var warningIntervalMinutes = NormalizeWarningInterval(session.WarningIntervalMinutesAtCogIn);
+        var successfulChecks = Math.Max(0, session.SuccessfulCogChecks);
+        var elapsedMinutes = CalculateDurationMinutes(cogInAtUtc, nowUtc);
+        var requiredChecks = elapsedMinutes / warningIntervalMinutes;
+
+        var nextRequiredCheckNumber = successfulChecks + 1;
+        var nextCheckAtUtc = AsUtc(cogInAtUtc.AddMinutes(nextRequiredCheckNumber * warningIntervalMinutes));
+        var checkDeadlineAtUtc = AsUtc(nextCheckAtUtc.AddMinutes(CogCheckRules.CogCheckDeadlineMinutes));
+
+        var requiresCheck = requiredChecks > successfulChecks && nowUtc >= nextCheckAtUtc && nowUtc <= checkDeadlineAtUtc;
+        var deadlineMissed = requiredChecks > successfulChecks && nowUtc > checkDeadlineAtUtc;
+
+        return new CogCheckEvaluation(
+            requiredChecks,
+            successfulChecks,
+            warningIntervalMinutes,
+            nextCheckAtUtc,
+            checkDeadlineAtUtc,
+            requiresCheck,
+            deadlineMissed);
+    }
+
+    private static CogCheckStatusDto BuildOpenCogCheckStatus(CogSession session, CogCheckEvaluation checkState)
+    {
+        return new CogCheckStatusDto(
+            true,
+            session.CogSessionId,
+            checkState.RequiresCheck,
+            CogCheckRules.SpinsRequired,
+            checkState.SuccessfulChecks,
+            checkState.RequiredChecks,
+            checkState.WarningIntervalMinutes,
+            AsUtc(session.CogInAtUtc),
+            checkState.NextCheckAtUtc,
+            checkState.CheckDeadlineAtUtc,
+            false,
+            null,
+            null);
+    }
+
+    private static CogCheckStatusDto BuildClosedCogCheckStatus(CogSession? latestSession)
+    {
+        if (latestSession is null)
+        {
+            return new CogCheckStatusDto(
+                false,
+                null,
+                false,
+                CogCheckRules.SpinsRequired,
+                0,
+                0,
+                60,
+                null,
+                null,
+                null,
+                false,
+                null,
+                null);
+        }
+
+        return new CogCheckStatusDto(
+            false,
+            latestSession.CogSessionId,
+            false,
+            CogCheckRules.SpinsRequired,
+            Math.Max(0, latestSession.SuccessfulCogChecks),
+            Math.Max(0, latestSession.SuccessfulCogChecks),
+            NormalizeWarningInterval(latestSession.WarningIntervalMinutesAtCogIn),
+            AsUtc(latestSession.CogInAtUtc),
+            null,
+            null,
+            latestSession.AutoCogOutNoPayout,
+            latestSession.CogOutAtUtc.HasValue ? AsUtc(latestSession.CogOutAtUtc.Value) : (DateTime?)null,
+            latestSession.PayoutCogs);
+    }
+
+    private static int NormalizeWarningInterval(int warningIntervalMinutes)
+    {
+        if (warningIntervalMinutes < CogCheckRules.MinimumWarningIntervalMinutes)
+        {
+            return 60;
+        }
+
+        return Math.Min(warningIntervalMinutes, CogCheckRules.MaximumWarningIntervalMinutes);
     }
 
     private static DateTime AsUtc(DateTime value)
@@ -546,4 +853,13 @@ public class EconomyService(
         var trimmed = value?.Trim();
         return string.IsNullOrWhiteSpace(trimmed) ? null : trimmed;
     }
+
+    private sealed record CogCheckEvaluation(
+        int RequiredChecks,
+        int SuccessfulChecks,
+        int WarningIntervalMinutes,
+        DateTime NextCheckAtUtc,
+        DateTime CheckDeadlineAtUtc,
+        bool RequiresCheck,
+        bool DeadlineMissed);
 }

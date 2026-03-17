@@ -4,6 +4,8 @@ import { Observable } from 'rxjs';
 import { appSettings } from '../app.settings';
 import {
   AdminUserSummary,
+  CogCheckStatus,
+  CogRuntimeSettings,
   CogSession,
   CraftGearPayload,
   CraftGearReceipt,
@@ -16,6 +18,7 @@ import {
   MarketplacePurchaseReceipt,
   PurchaseReceipt,
   StoreItem,
+  UpdateCogWarningIntervalPayload,
   UpsertGearPayload
 } from '../models/economy.models';
 
@@ -103,6 +106,20 @@ export class EconomyApiService {
     });
   }
 
+  getCogCheckStatus(): Observable<CogCheckStatus> {
+    return this.http.get<CogCheckStatus>(`${this.baseUrl}/api/economy/cog-sessions/status`, {
+      withCredentials: true
+    });
+  }
+
+  completeCogCheck(spinsCompleted: number): Observable<CogCheckStatus> {
+    return this.http.post<CogCheckStatus>(`${this.baseUrl}/api/economy/cog-sessions/check-in`, {
+      spinsCompleted
+    }, {
+      withCredentials: true
+    });
+  }
+
   getAdminUsers(): Observable<AdminUserSummary[]> {
     return this.http.get<AdminUserSummary[]>(`${this.baseUrl}/api/admin/users`, {
       withCredentials: true
@@ -115,6 +132,18 @@ export class EconomyApiService {
       params: {
         includeInactive
       }
+    });
+  }
+
+  getCogRuntimeSettings(): Observable<CogRuntimeSettings> {
+    return this.http.get<CogRuntimeSettings>(`${this.baseUrl}/api/admin/cog-settings`, {
+      withCredentials: true
+    });
+  }
+
+  updateCogWarningInterval(payload: UpdateCogWarningIntervalPayload): Observable<CogRuntimeSettings> {
+    return this.http.put<CogRuntimeSettings>(`${this.baseUrl}/api/admin/cog-settings/warning-interval`, payload, {
+      withCredentials: true
     });
   }
 

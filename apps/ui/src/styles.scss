@@ -144,6 +144,56 @@ body {
   word-break: break-word;
 }
 
+.cog-check-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  background: rgba(3, 8, 14, 0.84);
+  backdrop-filter: blur(4px);
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+}
+
+.cog-check-modal {
+  width: min(560px, 100%);
+  display: grid;
+  gap: 0.8rem;
+  text-align: center;
+}
+
+.cog-check-modal h2,
+.cog-check-modal p {
+  margin: 0;
+}
+
+.cog-check-readout {
+  display: grid;
+  gap: 0.3rem;
+}
+
+.cog-handle-btn {
+  width: 132px;
+  height: 132px;
+  margin: 0 auto;
+  border-radius: 50%;
+  border: 2px solid rgba(99, 219, 196, 0.55);
+  background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.22), rgba(12, 22, 34, 0.92));
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: transform 90ms ease-out;
+}
+
+.cog-handle-btn .gear {
+  pointer-events: none;
+}
+
+.cog-check-actions {
+  display: flex;
+  justify-content: center;
+}
+
 @media (max-width: 1160px) {
   .market-grid,
   .time-grid {

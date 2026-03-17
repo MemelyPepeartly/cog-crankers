@@ -7,6 +7,7 @@ GO
 USE [CogSlop];
 GO
 
+IF OBJECT_ID(N'dbo.CogRuntimeSettings', N'U') IS NOT NULL DROP TABLE [dbo].[CogRuntimeSettings];
 IF OBJECT_ID(N'dbo.MarketplaceListings', N'U') IS NOT NULL DROP TABLE [dbo].[MarketplaceListings];
 IF OBJECT_ID(N'dbo.CogSessions', N'U') IS NOT NULL DROP TABLE [dbo].[CogSessions];
 IF OBJECT_ID(N'dbo.CogTransactions', N'U') IS NOT NULL DROP TABLE [dbo].[CogTransactions];
@@ -110,11 +111,18 @@ CREATE TABLE [dbo].[CogSessions]
     [UserAccountId] INT NOT NULL,
     [CogInAtUtc] DATETIME2(0) NOT NULL,
     [CogOutAtUtc] DATETIME2(0) NULL,
+    [WarningIntervalMinutesAtCogIn] INT NOT NULL,
+    [SuccessfulCogChecks] INT NOT NULL CONSTRAINT [DF_CogSessions_SuccessfulCogChecks] DEFAULT (0),
+    [AutoCogOutNoPayout] BIT NOT NULL CONSTRAINT [DF_CogSessions_AutoCogOutNoPayout] DEFAULT (0),
+    [PayoutCogs] INT NULL,
     [CogInNote] NVARCHAR(300) NULL,
     [CogOutNote] NVARCHAR(300) NULL,
     CONSTRAINT [PK_CogSessions] PRIMARY KEY CLUSTERED ([CogSessionId] ASC),
     CONSTRAINT [FK_CogSessions_UserAccounts] FOREIGN KEY ([UserAccountId]) REFERENCES [dbo].[UserAccounts]([UserAccountId]) ON DELETE CASCADE,
-    CONSTRAINT [CK_CogSessions_Order] CHECK ([CogOutAtUtc] IS NULL OR [CogOutAtUtc] >= [CogInAtUtc])
+    CONSTRAINT [CK_CogSessions_Order] CHECK ([CogOutAtUtc] IS NULL OR [CogOutAtUtc] >= [CogInAtUtc]),
+    CONSTRAINT [CK_CogSessions_WarningInterval] CHECK ([WarningIntervalMinutesAtCogIn] >= 5),
+    CONSTRAINT [CK_CogSessions_SuccessfulCogChecks] CHECK ([SuccessfulCogChecks] >= 0),
+    CONSTRAINT [CK_CogSessions_PayoutCogs] CHECK ([PayoutCogs] IS NULL OR [PayoutCogs] >= 0)
 );
 GO
 
@@ -139,6 +147,22 @@ CREATE TABLE [dbo].[MarketplaceListings]
     CONSTRAINT [CK_MarketplaceListings_Status] CHECK ([ListingStatus] IN (N'Open', N'Sold', N'Cancelled')),
     CONSTRAINT [CK_MarketplaceListings_SoldAt] CHECK (([ListingStatus] <> N'Sold' AND [SoldAtUtc] IS NULL) OR ([ListingStatus] = N'Sold' AND [SoldAtUtc] IS NOT NULL))
 );
+GO
+
+CREATE TABLE [dbo].[CogRuntimeSettings]
+(
+    [CogRuntimeSettingId] INT IDENTITY(1,1) NOT NULL,
+    [WarningIntervalMinutes] INT NOT NULL CONSTRAINT [DF_CogRuntimeSettings_WarningIntervalMinutes] DEFAULT (60),
+    [UpdatedAtUtc] DATETIME2(0) NOT NULL CONSTRAINT [DF_CogRuntimeSettings_UpdatedAtUtc] DEFAULT SYSUTCDATETIME(),
+    [UpdatedByUserAccountId] INT NULL,
+    CONSTRAINT [PK_CogRuntimeSettings] PRIMARY KEY CLUSTERED ([CogRuntimeSettingId] ASC),
+    CONSTRAINT [FK_CogRuntimeSettings_UpdatedByUserAccounts] FOREIGN KEY ([UpdatedByUserAccountId]) REFERENCES [dbo].[UserAccounts]([UserAccountId]) ON DELETE SET NULL,
+    CONSTRAINT [CK_CogRuntimeSettings_WarningInterval] CHECK ([WarningIntervalMinutes] >= 5)
+);
+GO
+
+INSERT INTO [dbo].[CogRuntimeSettings] ([WarningIntervalMinutes], [UpdatedAtUtc], [UpdatedByUserAccountId])
+VALUES (60, SYSUTCDATETIME(), NULL);
 GO
 
 INSERT INTO [dbo].[Roles] ([Name]) VALUES (N'CogAdmin');

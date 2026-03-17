@@ -17,4 +17,11 @@ public interface IAdminService
     Task<StoreItemDto> CreateGearItemAsync(UpsertGearItemRequest request, CancellationToken cancellationToken);
 
     Task<StoreItemDto> UpdateGearItemAsync(int gearItemId, UpsertGearItemRequest request, CancellationToken cancellationToken);
+
+    Task<CogRuntimeSettingsDto> GetCogRuntimeSettingsAsync(CancellationToken cancellationToken);
+
+    Task<CogRuntimeSettingsDto> UpdateWarningIntervalAsync(
+        ClaimsPrincipal adminPrincipal,
+        UpdateCogWarningIntervalRequest request,
+        CancellationToken cancellationToken);
 }

@@ -10,4 +10,6 @@ public static class CogTransactionTypes
     public const string MarketplacePurchase = "MarketplacePurchase";
     public const string CogIn = "CogIn";
     public const string CogOut = "CogOut";
+    public const string CogCheckCompleted = "CogCheckCompleted";
+    public const string CogOutNoPayout = "CogOutNoPayout";
 }
