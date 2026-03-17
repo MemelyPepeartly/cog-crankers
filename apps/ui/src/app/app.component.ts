@@ -41,14 +41,14 @@ export class AppComponent implements OnInit {
   grantCogsForm: GrantCogsPayload = {
     userAccountId: 0,
     amount: 25,
-    note: 'Fresh cogs from mission control.'
+    note: 'Standard disbursement per Central Authority directive.'
   };
 
   grantGearForm: GrantGearPayload = {
     userAccountId: 0,
     gearItemId: 0,
     quantity: 1,
-    note: 'Special workshop drop.'
+    note: 'Authorized gear allocation — see case file.'
   };
 
   gearForm: UpsertGearPayload = this.createEmptyGearForm();
@@ -103,7 +103,7 @@ export class AppComponent implements OnInit {
   }
 
   signIn(): void {
-    this.infoMessage = 'Routing to Google sign-in...';
+    this.infoMessage = 'Redirecting to identity verification...';
     this.api.startGoogleLogin();
   }
 
@@ -121,7 +121,7 @@ export class AppComponent implements OnInit {
     this.adminUsers = [];
     this.adminGearItems = [];
     this.activePage = 'pilot';
-    this.infoMessage = 'Clutch released. Come back when you are ready to crank again.';
+    this.infoMessage = 'Session terminated. Your cogs remain on file with the Authority.';
   }
 
   async refreshAll(): Promise<void> {
@@ -147,7 +147,7 @@ export class AppComponent implements OnInit {
         this.adminUsers = [];
         this.adminGearItems = [];
         this.activePage = 'pilot';
-        this.infoMessage = 'Session state: signed out.';
+        this.infoMessage = 'No active session. The economy continues without you.';
         return;
       }
 
@@ -160,7 +160,7 @@ export class AppComponent implements OnInit {
         this.activePage = 'pilot';
       }
     } catch (error) {
-      this.captureError(error, 'The control deck jammed while loading.');
+      this.captureError(error, 'The cog reserve encountered a structural integrity failure.');
     } finally {
       this.isLoading = false;
     }
@@ -174,13 +174,13 @@ export class AppComponent implements OnInit {
       this.infoMessage = receipt.message;
       await this.refreshAll();
     } catch (error) {
-      this.captureError(error, 'Purchase gears slipped out of alignment.');
+      this.captureError(error, 'Transaction rejected by the cog clearinghouse.');
     }
   }
 
   async grantCogs(): Promise<void> {
     if (!this.grantCogsForm.userAccountId || this.grantCogsForm.amount < 1) {
-      this.errorMessage = 'Select a user and enter a positive cog amount.';
+      this.errorMessage = 'Disbursement requires a designated recipient and a positive cog amount.';
       return;
     }
 
@@ -188,16 +188,16 @@ export class AppComponent implements OnInit {
 
     try {
       await firstValueFrom(this.api.grantCogs(this.grantCogsForm));
-      this.infoMessage = 'Cog stipend delivered to the selected pilot.';
+      this.infoMessage = 'Cogs disbursed. The recipient has been notified by the usual channels.';
       await this.refreshAll();
     } catch (error) {
-      this.captureError(error, 'Cog grant failed to engage.');
+      this.captureError(error, 'Disbursement denied. The cog reserve has flagged this transaction.');
     }
   }
 
   async grantGear(): Promise<void> {
     if (!this.grantGearForm.userAccountId || !this.grantGearForm.gearItemId) {
-      this.errorMessage = 'Select a user and a gear item before granting.';
+      this.errorMessage = 'Allocation requires both a recipient and a gear specification.';
       return;
     }
 
@@ -205,10 +205,10 @@ export class AppComponent implements OnInit {
 
     try {
       await firstValueFrom(this.api.grantGear(this.grantGearForm));
-      this.infoMessage = 'Gear parcel launched.';
+      this.infoMessage = 'Gear allocated and transferred. Inventory records updated.';
       await this.refreshAll();
     } catch (error) {
-      this.captureError(error, 'Gear grant failed to deploy.');
+      this.captureError(error, 'Gear allocation rejected by supply chain authority.');
     }
   }
 
@@ -223,7 +223,7 @@ export class AppComponent implements OnInit {
       isActive: item.isActive,
       flavorText: item.flavorText ?? ''
     };
-    this.infoMessage = 'Editing gear profile. Save to forge updates.';
+    this.infoMessage = 'Gear specification loaded for amendment. Ratify when complete.';
   }
 
   cancelGearEdit(): void {
@@ -244,23 +244,23 @@ export class AppComponent implements OnInit {
     };
 
     if (!payload.name || !payload.gearType) {
-      this.errorMessage = 'Gear name and gear type are required.';
+      this.errorMessage = 'Designation and classification are mandatory fields per Authority regulation.';
       return;
     }
 
     try {
       if (this.editingGearItemId === null) {
         await firstValueFrom(this.api.createGearItem(payload));
-        this.infoMessage = 'New gear forged in the economy.';
+        this.infoMessage = 'New gear commissioned and entered into the official registry.';
       } else {
         await firstValueFrom(this.api.updateGearItem(this.editingGearItemId, payload));
-        this.infoMessage = 'Gear entry tightened and re-calibrated.';
+        this.infoMessage = 'Amendment ratified. Procurement records have been updated accordingly.';
       }
 
       this.cancelGearEdit();
       await this.refreshAll();
     } catch (error) {
-      this.captureError(error, 'Could not save the gear profile.');
+      this.captureError(error, 'The registry has refused this specification. Review and resubmit.');
     }
   }
 
@@ -323,7 +323,7 @@ export class AppComponent implements OnInit {
       costInCogs: 10,
       stockQuantity: null,
       isActive: true,
-      flavorText: 'Fresh from the cog forge.'
+      flavorText: 'Manufactured under license from the Central Cog Authority.'
     };
   }
 }
