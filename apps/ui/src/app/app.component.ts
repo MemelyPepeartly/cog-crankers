@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common';
+import { CommonModule, DOCUMENT } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
@@ -34,6 +34,7 @@ type LockerSort = 'quantityDesc' | 'nameAsc' | 'typeAsc' | 'valueDesc';
 })
 export class AppComponent implements OnInit, OnDestroy {
   private readonly api = inject(EconomyApiService);
+  private readonly documentRef = inject(DOCUMENT);
 
   isLoading = true;
   hasCompletedInitialLoad = false;
@@ -84,17 +85,28 @@ export class AppComponent implements OnInit, OnDestroy {
   lockerFilterType = 'All';
   lockerSort: LockerSort = 'quantityDesc';
   showCogCheckOverlay = false;
+  isCogHandleDragging = false;
   cogCheckSpinCount = 0;
   cogCheckHandleRotation = 0;
+  private cogCheckProgressDegrees = 0;
+  private cogCheckDirection: 1 | -1 | 0 = 0;
+  private cogHandleActivePointerId: number | null = null;
+  private cogHandleLastPointerAngle: number | null = null;
   private cogCheckPollHandle: ReturnType<typeof setInterval> | null = null;
   private lastNotifiedAutoCogOutSessionId: number | null = null;
+  private cogCheckAlarmAudio: HTMLAudioElement | null = null;
+  private isCogCheckAlarmBlockedByAutoplay = false;
 
   async ngOnInit(): Promise<void> {
+    this.initializeCogCheckAlarm();
     await this.refreshAll();
   }
 
   ngOnDestroy(): void {
     this.stopCogCheckPolling();
+    this.resetCogCheckHandle();
+    this.stopCogCheckAlarm();
+    this.setCogCheckPageLock(false);
   }
 
   get pilot(): UserProfile | null {
@@ -245,6 +257,8 @@ export class AppComponent implements OnInit, OnDestroy {
     this.cogCheckStatus = null;
     this.showCogCheckOverlay = false;
     this.resetCogCheckHandle();
+    this.stopCogCheckAlarm();
+    this.setCogCheckPageLock(false);
     this.stopCogCheckPolling();
     this.adminUsers = [];
     this.adminGearItems = [];
@@ -278,6 +292,8 @@ export class AppComponent implements OnInit, OnDestroy {
         this.cogCheckStatus = null;
         this.showCogCheckOverlay = false;
         this.resetCogCheckHandle();
+        this.stopCogCheckAlarm();
+        this.setCogCheckPageLock(false);
         this.stopCogCheckPolling();
         this.adminUsers = [];
         this.adminGearItems = [];
@@ -470,17 +486,73 @@ export class AppComponent implements OnInit, OnDestroy {
     return this.formatDurationMinutes(session.durationMinutes);
   }
 
-  spinCogHandle(): void {
-    if (!this.showCogCheckOverlay) {
+  onCogHandlePointerDown(event: PointerEvent): void {
+    if (!this.showCogCheckOverlay || this.cogCheckSpinCount >= this.cogCheckSpinsRequired) {
       return;
     }
 
-    if (this.cogCheckSpinCount >= this.cogCheckSpinsRequired) {
+    const handle = event.currentTarget as HTMLElement | null;
+    if (!handle) {
       return;
     }
 
-    this.cogCheckSpinCount += 1;
-    this.cogCheckHandleRotation += 26;
+    handle.setPointerCapture(event.pointerId);
+    this.cogHandleActivePointerId = event.pointerId;
+    this.cogHandleLastPointerAngle = this.pointerAngle(event, handle);
+    this.isCogHandleDragging = true;
+    this.ensureCogCheckAlarmPlayback();
+  }
+
+  onCogHandlePointerMove(event: PointerEvent): void {
+    if (!this.showCogCheckOverlay
+      || !this.isCogHandleDragging
+      || this.cogHandleActivePointerId !== event.pointerId
+      || this.cogCheckSpinCount >= this.cogCheckSpinsRequired) {
+      return;
+    }
+
+    const handle = event.currentTarget as HTMLElement | null;
+    const previousAngle = this.cogHandleLastPointerAngle;
+    if (!handle || previousAngle === null) {
+      return;
+    }
+
+    const currentAngle = this.pointerAngle(event, handle);
+    const delta = this.normalizeAngleDelta(currentAngle - previousAngle);
+    this.cogHandleLastPointerAngle = currentAngle;
+
+    if (Math.abs(delta) < 0.5) {
+      return;
+    }
+
+    if (this.cogCheckDirection === 0) {
+      this.cogCheckDirection = delta >= 0 ? 1 : -1;
+    }
+
+    const directionalDelta = delta * this.cogCheckDirection;
+    this.cogCheckProgressDegrees = Math.max(0, this.cogCheckProgressDegrees + directionalDelta);
+    this.cogCheckHandleRotation += delta;
+
+    const completedSpins = Math.floor(this.cogCheckProgressDegrees / 360);
+    this.cogCheckSpinCount = Math.min(
+      this.cogCheckSpinsRequired,
+      Math.max(this.cogCheckSpinCount, completedSpins)
+    );
+
+    event.preventDefault();
+  }
+
+  onCogHandlePointerUp(event: PointerEvent): void {
+    if (this.cogHandleActivePointerId !== event.pointerId) {
+      return;
+    }
+
+    const handle = event.currentTarget as HTMLElement | null;
+    if (handle?.hasPointerCapture(event.pointerId)) {
+      handle.releasePointerCapture(event.pointerId);
+    }
+
+    this.releaseCogHandlePointerState();
   }
 
   async submitCogCheck(): Promise<void> {
@@ -628,13 +700,18 @@ export class AppComponent implements OnInit, OnDestroy {
 
     const overlayWasVisible = this.showCogCheckOverlay;
     this.showCogCheckOverlay = status.hasOpenSession && status.requiresCogCheck;
+    this.setCogCheckPageLock(this.showCogCheckOverlay);
 
     if (!overlayWasVisible && this.showCogCheckOverlay) {
       this.resetCogCheckHandle();
+      this.startCogCheckAlarm();
     }
 
     if (!this.showCogCheckOverlay) {
       this.resetCogCheckHandle();
+      this.stopCogCheckAlarm();
+    } else if (this.isCogCheckAlarmBlockedByAutoplay) {
+      this.ensureCogCheckAlarmPlayback();
     }
 
     if (shouldNotifyAutoCogOut
@@ -680,8 +757,85 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   private resetCogCheckHandle(): void {
+    this.releaseCogHandlePointerState();
     this.cogCheckSpinCount = 0;
     this.cogCheckHandleRotation = 0;
+    this.cogCheckProgressDegrees = 0;
+    this.cogCheckDirection = 0;
+  }
+
+  private releaseCogHandlePointerState(): void {
+    this.isCogHandleDragging = false;
+    this.cogHandleActivePointerId = null;
+    this.cogHandleLastPointerAngle = null;
+  }
+
+  private pointerAngle(event: PointerEvent, element: HTMLElement): number {
+    const rect = element.getBoundingClientRect();
+    const centerX = rect.left + (rect.width / 2);
+    const centerY = rect.top + (rect.height / 2);
+    return Math.atan2(event.clientY - centerY, event.clientX - centerX) * (180 / Math.PI);
+  }
+
+  private normalizeAngleDelta(delta: number): number {
+    if (delta > 180) {
+      return delta - 360;
+    }
+
+    if (delta < -180) {
+      return delta + 360;
+    }
+
+    return delta;
+  }
+
+  private initializeCogCheckAlarm(): void {
+    const alarm = new Audio('/assets/cog-check.mp3');
+    alarm.loop = true;
+    alarm.preload = 'auto';
+    alarm.volume = 0.85;
+    this.cogCheckAlarmAudio = alarm;
+  }
+
+  private startCogCheckAlarm(): void {
+    if (!this.cogCheckAlarmAudio || !this.showCogCheckOverlay) {
+      return;
+    }
+
+    this.cogCheckAlarmAudio.currentTime = 0;
+    void this.cogCheckAlarmAudio.play()
+      .then(() => {
+        this.isCogCheckAlarmBlockedByAutoplay = false;
+      })
+      .catch(() => {
+        this.isCogCheckAlarmBlockedByAutoplay = true;
+      });
+  }
+
+  private ensureCogCheckAlarmPlayback(): void {
+    if (!this.showCogCheckOverlay || !this.cogCheckAlarmAudio) {
+      return;
+    }
+
+    if (!this.cogCheckAlarmAudio.paused && !this.isCogCheckAlarmBlockedByAutoplay) {
+      return;
+    }
+
+    this.startCogCheckAlarm();
+  }
+
+  private stopCogCheckAlarm(): void {
+    if (!this.cogCheckAlarmAudio) {
+      return;
+    }
+
+    this.cogCheckAlarmAudio.pause();
+    this.cogCheckAlarmAudio.currentTime = 0;
+    this.isCogCheckAlarmBlockedByAutoplay = false;
+  }
+
+  private setCogCheckPageLock(isLocked: boolean): void {
+    this.documentRef.body.classList.toggle('cog-check-lock', isLocked);
   }
 
   private async loadAdminPanel(): Promise<void> {

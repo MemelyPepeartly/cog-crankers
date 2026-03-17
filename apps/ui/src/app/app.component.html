@@ -652,9 +652,22 @@
         <p>Required checks this shift: {{ status.requiredCogChecks }}</p>
       </div>
 
-      <button type="button" class="cog-handle-btn" (click)="spinCogHandle()" [style.transform]="'rotate(' + cogCheckHandleRotation + 'deg)'">
-        <span class="gear gear--lg"></span>
-      </button>
+      <div class="cog-handle-stage">
+        <p class="cog-check-instruction">Grab the handle and pull it in full circles.</p>
+        <button
+          type="button"
+          class="cog-handle-btn"
+          [class.cog-handle-btn--dragging]="isCogHandleDragging"
+          [style.transform]="'rotate(' + cogCheckHandleRotation + 'deg)'"
+          (pointerdown)="onCogHandlePointerDown($event)"
+          (pointermove)="onCogHandlePointerMove($event)"
+          (pointerup)="onCogHandlePointerUp($event)"
+          (pointercancel)="onCogHandlePointerUp($event)"
+          aria-label="Spin verification cog">
+          <span class="cog-handle-grip" aria-hidden="true"></span>
+          <span class="gear gear--lg" aria-hidden="true"></span>
+        </button>
+      </div>
 
       <div class="cog-check-actions">
         <button
