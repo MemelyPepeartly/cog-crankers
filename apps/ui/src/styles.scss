@@ -49,6 +49,82 @@ body {
   gap: 0.45rem;
 }
 
+.locker-toolbar {
+  display: grid;
+  gap: 0.6rem;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  margin-bottom: 0.85rem;
+}
+
+.locker-grid {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.locker-card {
+  border: 1px solid rgba(255, 178, 74, 0.28);
+  border-radius: 14px;
+  background:
+    linear-gradient(165deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02)),
+    radial-gradient(circle at top right, rgba(99, 219, 196, 0.14), transparent 44%);
+  padding: 0.82rem;
+  display: grid;
+  gap: 0.4rem;
+  transition: transform 140ms ease, border-color 140ms ease;
+}
+
+.locker-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(99, 219, 196, 0.48);
+}
+
+.locker-card h3 {
+  margin: 0;
+}
+
+.locker-card-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.locker-chip {
+  border-radius: 999px;
+  padding: 0.16rem 0.52rem;
+  border: 1px solid rgba(99, 219, 196, 0.46);
+  background: rgba(99, 219, 196, 0.16);
+  font-size: 0.76rem;
+}
+
+.locker-value {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.locker-dossier {
+  margin-top: 0.15rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  padding-top: 0.35rem;
+}
+
+.locker-dossier summary {
+  cursor: pointer;
+  color: var(--signal);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 0.72rem;
+}
+
+.locker-dossier p {
+  margin: 0.45rem 0 0;
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+
 @media (max-width: 1160px) {
   .market-grid,
   .time-grid {

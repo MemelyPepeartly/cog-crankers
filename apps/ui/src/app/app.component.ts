@@ -11,6 +11,7 @@ import {
   DashboardResponse,
   GrantCogsPayload,
   GrantGearPayload,
+  InventoryItem,
   MarketplaceListing,
   StoreItem,
   UpsertGearPayload,
@@ -19,6 +20,7 @@ import {
 import { EconomyApiService } from './services/economy-api.service';
 
 type CogPage = 'pilot' | 'shop' | 'locker' | 'marketplace' | 'timecard' | 'admin';
+type LockerSort = 'quantityDesc' | 'nameAsc' | 'typeAsc' | 'valueDesc';
 
 @Component({
   selector: 'app-root',
@@ -69,6 +71,9 @@ export class AppComponent implements OnInit {
 
   cogInNote = '';
   cogOutNote = '';
+  lockerSearch = '';
+  lockerFilterType = 'All';
+  lockerSort: LockerSort = 'quantityDesc';
 
   async ngOnInit(): Promise<void> {
     await this.refreshAll();
@@ -97,6 +102,55 @@ export class AppComponent implements OnInit {
   get selectedListingItem(): UserProfile['inventory'][number] | null {
     const inventory = this.pilot?.inventory ?? [];
     return inventory.find(x => x.gearItemId === this.listingForm.gearItemId) ?? null;
+  }
+
+  get lockerTypeOptions(): string[] {
+    const types = new Set((this.pilot?.inventory ?? []).map(x => x.gearType).filter(Boolean));
+    return ['All', ...Array.from(types).sort((a, b) => a.localeCompare(b))];
+  }
+
+  get filteredLockerInventory(): InventoryItem[] {
+    const inventory = this.pilot?.inventory ?? [];
+    const search = this.lockerSearch.trim().toLowerCase();
+    const selectedType = this.lockerFilterType;
+
+    const filtered = inventory.filter(item =>
+    {
+      const typeMatch = selectedType === 'All' || item.gearType === selectedType;
+      if (!typeMatch)
+      {
+        return false;
+      }
+
+      if (!search)
+      {
+        return true;
+      }
+
+      const nameMatch = item.name.toLowerCase().includes(search);
+      const typeSearchMatch = item.gearType.toLowerCase().includes(search);
+      const flavorMatch = (item.flavorText ?? '').toLowerCase().includes(search);
+      return nameMatch || typeSearchMatch || flavorMatch;
+    });
+
+    const sorted = [...filtered];
+    sorted.sort((a, b) =>
+    {
+      switch (this.lockerSort)
+      {
+        case 'nameAsc':
+          return a.name.localeCompare(b.name);
+        case 'typeAsc':
+          return a.gearType.localeCompare(b.gearType) || a.name.localeCompare(b.name);
+        case 'valueDesc':
+          return (b.costInCogs * b.quantity) - (a.costInCogs * a.quantity);
+        case 'quantityDesc':
+        default:
+          return b.quantity - a.quantity || a.name.localeCompare(b.name);
+      }
+    });
+
+    return sorted;
   }
 
   get liveCogBalance(): number {

@@ -325,28 +325,8 @@
   font-weight: 700;
 }
 .stock,
-.inventory-list small,
 .gear-list small {
   color: var(--muted);
-}
-.inventory-list {
-  list-style: none;
-  margin: 0.15rem 0 0;
-  padding: 0;
-  display: grid;
-  gap: 0.42rem;
-}
-.inventory-list li {
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.03);
-  padding: 0.45rem 0.6rem;
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 0.4rem;
-}
-.inventory-list small {
-  grid-column: 1 / -1;
 }
 .admin-gear-grid {
   margin-top: 0.85rem;

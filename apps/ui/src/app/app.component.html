@@ -214,14 +214,58 @@
         <h2>Personal Asset Vault</h2>
         <p>Official record of all gear held under your cog account. Discrepancies will be investigated.</p>
       </header>
+
       <p *ngIf="user.inventory.length === 0">Your vault is empty. The procurement office is open for business.</p>
-      <ul *ngIf="user.inventory.length > 0" class="inventory-list">
-        <li *ngFor="let item of user.inventory">
-          <strong>{{ item.name }}</strong>
-          <span>{{ item.quantity }}x</span>
-          <small>{{ item.gearType }}</small>
-        </li>
-      </ul>
+
+      <div *ngIf="user.inventory.length > 0" class="locker-toolbar">
+        <label>
+          Search
+          <input
+            type="text"
+            [(ngModel)]="lockerSearch"
+            name="lockerSearch"
+            maxlength="120"
+            placeholder="Name, type, or flavor..." />
+        </label>
+        <label>
+          Gear Type
+          <select [(ngModel)]="lockerFilterType" name="lockerTypeFilter">
+            <option *ngFor="let type of lockerTypeOptions" [ngValue]="type">{{ type }}</option>
+          </select>
+        </label>
+        <label>
+          Sort
+          <select [(ngModel)]="lockerSort" name="lockerSort">
+            <option [ngValue]="'quantityDesc'">Quantity (High to Low)</option>
+            <option [ngValue]="'valueDesc'">Total Value (High to Low)</option>
+            <option [ngValue]="'nameAsc'">Name (A-Z)</option>
+            <option [ngValue]="'typeAsc'">Type (A-Z)</option>
+          </select>
+        </label>
+      </div>
+
+      <p *ngIf="user.inventory.length > 0 && filteredLockerInventory.length === 0">
+        No gear matches your current filters.
+      </p>
+
+      <div *ngIf="filteredLockerInventory.length > 0" class="locker-grid">
+        <article class="locker-card" *ngFor="let item of filteredLockerInventory">
+          <div class="locker-card-head">
+            <p class="gear-type">{{ item.gearType }}</p>
+            <span class="locker-chip">{{ item.quantity }}x</span>
+          </div>
+          <h3>{{ item.name }}</h3>
+          <p class="locker-value">Unit value: {{ item.costInCogs }} cogs</p>
+          <p class="locker-value">Stack value: {{ item.costInCogs * item.quantity }} cogs</p>
+
+          <details class="locker-dossier">
+            <summary>Gear Dossier</summary>
+            <p>
+              {{ item.flavorText || 'No additional dossier notes are available for this gear item.' }}
+            </p>
+          </details>
+        </article>
+      </div>
     </section>
 
     <section *ngIf="isPage('marketplace')" class="panel page-shell marketplace-page">
