@@ -72,13 +72,13 @@
 
   <section *ngIf="!isLoading && isAuthenticated" class="panel page-nav">
     <button type="button" class="tab-btn" [class.tab-btn--active]="isPage('pilot')" (click)="setPage('pilot')">
-      Holdings
+      My Profile
     </button>
     <button type="button" class="tab-btn" [class.tab-btn--active]="isPage('shop')" (click)="setPage('shop')">
-      Procurement
+      Gear Shop
     </button>
     <button type="button" class="tab-btn" [class.tab-btn--active]="isPage('locker')" (click)="setPage('locker')">
-      Asset Vault
+      My Gear
     </button>
     <button
       *ngIf="hasAdminPanel"
@@ -86,7 +86,7 @@
       class="tab-btn"
       [class.tab-btn--active]="isPage('admin')"
       (click)="setPage('admin')">
-      Central Authority
+      Admin Panel
     </button>
   </section>
 
@@ -151,9 +151,9 @@
           <h3>Navigate</h3>
           <p>Proceed to the relevant department.</p>
           <div class="quick-nav-actions">
-            <button type="button" class="btn btn-secondary" (click)="setPage('shop')">Procurement Office</button>
-            <button type="button" class="btn btn-secondary" (click)="setPage('locker')">Asset Vault</button>
-            <button *ngIf="hasAdminPanel" type="button" class="btn btn-secondary" (click)="setPage('admin')">Central Authority</button>
+            <button type="button" class="btn btn-secondary" (click)="setPage('shop')">Gear Shop</button>
+            <button type="button" class="btn btn-secondary" (click)="setPage('locker')">My Gear</button>
+            <button *ngIf="hasAdminPanel" type="button" class="btn btn-secondary" (click)="setPage('admin')">Admin Panel</button>
           </div>
         </article>
       </div>
@@ -254,10 +254,10 @@
             <input type="number" [(ngModel)]="grantCogsForm.amount" min="1" name="grantCogsAmount" />
           </label>
           <label>
-            Justification
+            Note
             <input type="text" [(ngModel)]="grantCogsForm.note" maxlength="300" name="grantCogsNote" />
           </label>
-          <button type="button" class="btn btn-primary" (click)="grantCogs()">Authorize Disbursement</button>
+          <button type="button" class="btn btn-primary" (click)="grantCogs()">Grant Cogs</button>
         </article>
 
         <article class="admin-card action-card">
@@ -285,59 +285,59 @@
             <input type="number" [(ngModel)]="grantGearForm.quantity" min="1" name="grantGearQuantity" />
           </label>
           <label>
-            Justification
+            Note
             <input type="text" [(ngModel)]="grantGearForm.note" maxlength="300" name="grantGearNote" />
           </label>
-          <button type="button" class="btn btn-primary" (click)="grantGear()">Authorize Allocation</button>
+          <button type="button" class="btn btn-primary" (click)="grantGear()">Grant Gear</button>
         </article>
 
         <article class="admin-card admin-card--wide forge-card">
           <div class="card-head">
-            <h3>{{ editingGearItemId === null ? 'Commission New Gear' : 'Amend Gear Specification' }}</h3>
-            <span>Supply Chain Management</span>
+            <h3>{{ editingGearItemId === null ? 'Create New Gear' : 'Edit Gear' }}</h3>
+            <span>Gear Management</span>
           </div>
 
           <div class="forge-layout">
             <div class="forge-form">
               <div class="form-grid">
                 <label>
-                  Designation
+                  Name
                   <input type="text" [(ngModel)]="gearForm.name" maxlength="120" name="gearName" />
                 </label>
                 <label>
-                  Classification
+                  Gear Type
                   <input type="text" [(ngModel)]="gearForm.gearType" maxlength="60" name="gearType" />
                 </label>
                 <label>
-                  Cost In Cogs
+                  Cost (cogs)
                   <input type="number" [(ngModel)]="gearForm.costInCogs" min="0" name="gearCost" />
                 </label>
                 <label>
-                  Supply Cap (blank = unlimited)
+                  Stock (blank = unlimited)
                   <input type="number" [(ngModel)]="gearForm.stockQuantity" min="0" name="gearStock" />
                 </label>
                 <label class="wide">
-                  Official Description
+                  Description
                   <input type="text" [(ngModel)]="gearForm.description" maxlength="600" name="gearDescription" />
                 </label>
                 <label class="wide">
-                  Flavor Dossier
+                  Flavor Text
                   <input type="text" [(ngModel)]="gearForm.flavorText" maxlength="300" name="gearFlavor" />
                 </label>
                 <label class="wide checkbox">
                   <input type="checkbox" [(ngModel)]="gearForm.isActive" name="gearActive" />
-                  Release to procurement immediately
+                  List in the shop immediately
                 </label>
               </div>
 
               <div class="admin-actions">
-                <button type="button" class="btn btn-primary" (click)="saveGearItem()">Ratify</button>
-                <button *ngIf="editingGearItemId !== null" type="button" class="btn btn-ghost" (click)="cancelGearEdit()">Discard Amendment</button>
+                <button type="button" class="btn btn-primary" (click)="saveGearItem()">Save Gear</button>
+                <button *ngIf="editingGearItemId !== null" type="button" class="btn btn-ghost" (click)="cancelGearEdit()">Cancel</button>
               </div>
             </div>
 
             <div class="forge-catalog">
-              <h4>Active Gear Registry</h4>
+              <h4>All Gear Items</h4>
               <ul class="gear-list">
                 <li *ngFor="let item of adminGearItems">
                   <div>
@@ -348,7 +348,7 @@
                       {{ item.isActive ? 'Active' : 'Suspended' }}
                     </small>
                   </div>
-                  <button type="button" class="btn btn-secondary" (click)="startEditGearItem(item)">Amend</button>
+                  <button type="button" class="btn btn-secondary" (click)="startEditGearItem(item)">Edit</button>
                 </li>
               </ul>
             </div>

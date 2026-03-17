@@ -221,7 +221,7 @@ export class AppComponent implements OnInit {
       isActive: item.isActive,
       flavorText: item.flavorText ?? ''
     };
-    this.infoMessage = 'Gear specification loaded for amendment. Ratify when complete.';
+    this.infoMessage = 'Gear loaded for editing.';
   }
 
   cancelGearEdit(): void {
@@ -242,7 +242,7 @@ export class AppComponent implements OnInit {
     };
 
     if (!payload.name || !payload.gearType) {
-      this.errorMessage = 'Designation and classification are mandatory fields per Authority regulation.';
+      this.errorMessage = 'Gear name and type are required fields.';
       return;
     }
 
@@ -252,7 +252,7 @@ export class AppComponent implements OnInit {
         this.infoMessage = 'New gear commissioned and entered into the official registry.';
       } else {
         await firstValueFrom(this.api.updateGearItem(this.editingGearItemId, payload));
-        this.infoMessage = 'Amendment ratified. Procurement records have been updated accordingly.';
+        this.infoMessage = 'Gear updated. The economy adjusts.';
       }
 
       this.cancelGearEdit();
