@@ -42,6 +42,61 @@ export interface PurchaseReceipt {
   gear: InventoryItem;
 }
 
+export interface CraftGearPayload {
+  name: string;
+  description?: string | null;
+  gearType: string;
+  craftingCostInCogs: number;
+  flavorText?: string | null;
+}
+
+export interface CraftGearReceipt {
+  message: string;
+  cogsSpent: number;
+  newCogBalance: number;
+  gear: InventoryItem;
+}
+
+export interface MarketplaceListing {
+  marketplaceListingId: number;
+  gearItemId: number;
+  gearName: string;
+  gearType: string;
+  flavorText?: string | null;
+  quantity: number;
+  priceInCogs: number;
+  sellerUserAccountId: number;
+  sellerDisplayName: string;
+  listingStatus: string;
+  sellerNote?: string | null;
+  createdAtUtc: string;
+  soldAtUtc?: string | null;
+}
+
+export interface CreateMarketplaceListingPayload {
+  gearItemId: number;
+  quantity: number;
+  priceInCogs: number;
+  sellerNote?: string | null;
+}
+
+export interface MarketplacePurchaseReceipt {
+  message: string;
+  cogsSpent: number;
+  newCogBalance: number;
+  gear: InventoryItem;
+}
+
+export interface CogSession {
+  cogSessionId: number;
+  cogInAtUtc: string;
+  cogOutAtUtc?: string | null;
+  durationMinutes?: number | null;
+  isOpen: boolean;
+  cogInNote?: string | null;
+  cogOutNote?: string | null;
+}
+
 export interface AdminUserSummary {
   userAccountId: number;
   displayName: string;

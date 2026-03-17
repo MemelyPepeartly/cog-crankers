@@ -35,6 +35,14 @@
         <p>Gear Assets On Hand</p>
         <strong>{{ pilot?.inventory?.length ?? 0 }} gears</strong>
       </article>
+      <article class="meter">
+        <p>Shift State</p>
+        <strong>{{ hasOpenCogSession ? 'Cogged In' : 'Cogged Out' }}</strong>
+      </article>
+      <article class="meter">
+        <p>Marketplace Listings</p>
+        <strong>{{ marketplaceListings.length }}</strong>
+      </article>
       <article class="meter" *ngIf="hasAdminPanel">
         <p>Total Cog Supply (M1)</p>
         <strong>{{ cogCirculation }}</strong>
@@ -79,6 +87,12 @@
     </button>
     <button type="button" class="tab-btn" [class.tab-btn--active]="isPage('locker')" (click)="setPage('locker')">
       My Gear
+    </button>
+    <button type="button" class="tab-btn" [class.tab-btn--active]="isPage('marketplace')" (click)="setPage('marketplace')">
+      Marketplace
+    </button>
+    <button type="button" class="tab-btn" [class.tab-btn--active]="isPage('timecard')" (click)="setPage('timecard')">
+      Cog Clock
     </button>
     <button
       *ngIf="hasAdminPanel"
@@ -141,6 +155,14 @@
               <p>{{ user.inventory.length }}</p>
             </article>
             <article>
+              <h4>Shift Status</h4>
+              <p>{{ hasOpenCogSession ? 'Cogged In' : 'Cogged Out' }}</p>
+            </article>
+            <article>
+              <h4>Marketplace</h4>
+              <p>{{ marketplaceListings.length }} open</p>
+            </article>
+            <article>
               <h4>Authority Clearance</h4>
               <p>{{ user.isAdmin ? 'Granted' : 'Insufficient' }}</p>
             </article>
@@ -153,6 +175,8 @@
           <div class="quick-nav-actions">
             <button type="button" class="btn btn-secondary" (click)="setPage('shop')">Gear Shop</button>
             <button type="button" class="btn btn-secondary" (click)="setPage('locker')">My Gear</button>
+            <button type="button" class="btn btn-secondary" (click)="setPage('marketplace')">Marketplace</button>
+            <button type="button" class="btn btn-secondary" (click)="setPage('timecard')">Cog Clock</button>
             <button *ngIf="hasAdminPanel" type="button" class="btn btn-secondary" (click)="setPage('admin')">Admin Panel</button>
           </div>
         </article>
@@ -198,6 +222,185 @@
           <small>{{ item.gearType }}</small>
         </li>
       </ul>
+    </section>
+
+    <section *ngIf="isPage('marketplace')" class="panel page-shell marketplace-page">
+      <header class="section-head">
+        <h2>Cog Bazaar And Forge</h2>
+        <p>Craft custom gear, list your inventory, and trade with other citizens for cogs.</p>
+      </header>
+
+      <div class="market-grid">
+        <article class="market-card action-card">
+          <div class="card-head">
+            <h3>Forge Custom Gear</h3>
+            <span>Pay cogs to craft</span>
+          </div>
+
+          <label>
+            Gear Name
+            <input type="text" [(ngModel)]="craftForm.name" maxlength="120" name="craftName" />
+          </label>
+          <label>
+            Gear Type
+            <input type="text" [(ngModel)]="craftForm.gearType" maxlength="60" name="craftType" />
+          </label>
+          <label>
+            Craft Cost (cogs)
+            <input type="number" [(ngModel)]="craftForm.craftingCostInCogs" min="1" name="craftCost" />
+          </label>
+          <label>
+            Description
+            <input type="text" [(ngModel)]="craftForm.description" maxlength="600" name="craftDescription" />
+          </label>
+          <label>
+            Flavor Text
+            <input type="text" [(ngModel)]="craftForm.flavorText" maxlength="300" name="craftFlavor" />
+          </label>
+
+          <button type="button" class="btn btn-primary" (click)="craftGear()">Craft Gear</button>
+        </article>
+
+        <article class="market-card action-card">
+          <div class="card-head">
+            <h3>Post Listing</h3>
+            <span>Sell from locker</span>
+          </div>
+
+          <p *ngIf="user.inventory.length === 0" class="target-balance">
+            Your locker is empty. Craft or acquire gear first.
+          </p>
+
+          <ng-container *ngIf="user.inventory.length > 0">
+            <label>
+              Gear Item
+              <select [(ngModel)]="listingForm.gearItemId" name="listingGearItem" (ngModelChange)="onListingGearChanged()">
+                <option *ngFor="let item of user.inventory" [ngValue]="item.gearItemId">
+                  {{ item.name }} ({{ item.quantity }}x)
+                </option>
+              </select>
+            </label>
+
+            <label>
+              Quantity
+              <select [(ngModel)]="listingForm.quantity" name="listingQuantity">
+                <option *ngFor="let quantity of listingQuantityOptions(selectedListingItem?.quantity ?? 1)" [ngValue]="quantity">
+                  {{ quantity }}
+                </option>
+              </select>
+            </label>
+
+            <label>
+              Price (cogs)
+              <input type="number" [(ngModel)]="listingForm.priceInCogs" min="1" name="listingPrice" />
+            </label>
+
+            <label>
+              Note
+              <input type="text" [(ngModel)]="listingForm.sellerNote" maxlength="300" name="listingNote" />
+            </label>
+
+            <button type="button" class="btn btn-primary" (click)="createMarketplaceListing()">List For Sale</button>
+          </ng-container>
+        </article>
+      </div>
+
+      <article class="market-card market-card--wide">
+        <div class="card-head">
+          <h3>Open Listings</h3>
+          <span>{{ marketplaceListings.length }} listed</span>
+        </div>
+
+        <p *ngIf="marketplaceListings.length === 0">No active listings right now. Post one and set the market pace.</p>
+
+        <div *ngIf="marketplaceListings.length > 0" class="store-grid">
+          <article class="gear-card" *ngFor="let listing of marketplaceListings" [class.gear-card--ready]="canAffordListing(listing)">
+            <p class="gear-type">{{ listing.gearType }}</p>
+            <h3>{{ listing.gearName }} <small>x{{ listing.quantity }}</small></h3>
+            <p>{{ listing.flavorText || listing.sellerNote || 'Marketplace listing from a citizen workshop.' }}</p>
+            <p class="stock">{{ listingOwnershipLabel(listing) }}</p>
+            <p class="stock">Posted: {{ listing.createdAtUtc | date : 'short' }}</p>
+            <p class="price">{{ listing.priceInCogs }} cogs</p>
+            <button
+              type="button"
+              class="btn btn-primary"
+              [disabled]="isOwnListing(listing) || !canAffordListing(listing)"
+              (click)="buyMarketplaceListing(listing)">
+              {{ isOwnListing(listing) ? 'Your Listing' : (canAffordListing(listing) ? 'Buy Listing' : 'Not Enough Cogs') }}
+            </button>
+          </article>
+        </div>
+      </article>
+    </section>
+
+    <section *ngIf="isPage('timecard')" class="panel page-shell timecard-page">
+      <header class="section-head">
+        <h2>Cog Clock</h2>
+        <p>Cog in, cog out, and keep a full shift history with measured durations.</p>
+      </header>
+
+      <div class="time-grid">
+        <article class="time-card">
+          <div class="card-head">
+            <h3>Shift Status</h3>
+            <span>{{ hasOpenCogSession ? 'Active shift' : 'No active shift' }}</span>
+          </div>
+
+          <p *ngIf="openCogSession as session" class="target-balance">
+            Cogged in at {{ session.cogInAtUtc | date : 'short' }} ({{ sessionDurationLabel(session) }})
+          </p>
+          <p *ngIf="!openCogSession" class="target-balance">You are currently cogged out.</p>
+
+          <div class="clock-controls">
+            <label>
+              Cog In Note
+              <input type="text" [(ngModel)]="cogInNote" maxlength="300" name="cogInNote" />
+            </label>
+            <button type="button" class="btn btn-primary" [disabled]="hasOpenCogSession" (click)="cogIn()">Cog In</button>
+          </div>
+
+          <div class="clock-controls">
+            <label>
+              Cog Out Note
+              <input type="text" [(ngModel)]="cogOutNote" maxlength="300" name="cogOutNote" />
+            </label>
+            <button type="button" class="btn btn-secondary" [disabled]="!hasOpenCogSession" (click)="cogOut()">Cog Out</button>
+          </div>
+        </article>
+
+        <article class="time-card time-card--wide">
+          <div class="card-head">
+            <h3>Shift History</h3>
+            <span>{{ cogSessionHistory.length }} records</span>
+          </div>
+
+          <p *ngIf="cogSessionHistory.length === 0">No shift history yet. Cog in to start your first timed record.</p>
+
+          <table *ngIf="cogSessionHistory.length > 0">
+            <thead>
+              <tr>
+                <th>Cog In</th>
+                <th>Cog Out</th>
+                <th>Duration</th>
+                <th>Notes</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let session of cogSessionHistory">
+                <td>{{ session.cogInAtUtc | date : 'short' }}</td>
+                <td>{{ session.cogOutAtUtc ? (session.cogOutAtUtc | date : 'short') : 'In progress' }}</td>
+                <td>{{ sessionDurationLabel(session) }}</td>
+                <td>
+                  <span *ngIf="session.cogInNote">In: {{ session.cogInNote }}</span>
+                  <span *ngIf="session.cogInNote && session.cogOutNote"> | </span>
+                  <span *ngIf="session.cogOutNote">Out: {{ session.cogOutNote }}</span>
+                  <span *ngIf="!session.cogInNote && !session.cogOutNote">No notes</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </article>
+      </div>
     </section>
 
     <section *ngIf="hasAdminPanel && isPage('admin')" class="panel page-shell admin-page">

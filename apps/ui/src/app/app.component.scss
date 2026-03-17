@@ -22,7 +22,6 @@
     radial-gradient(circle at 88% 9%, rgba(99, 219, 196, 0.16) 0%, transparent 30%),
     linear-gradient(160deg, var(--bg-1), var(--bg-2) 52%, var(--bg-3));
 }
-
 .gearverse {
   max-width: 1260px;
   margin: 0 auto;
@@ -31,19 +30,16 @@
   gap: 1rem;
   position: relative;
 }
-
 .gearverse > * {
   position: relative;
   z-index: 1;
 }
-
 .gearstorm {
   position: absolute;
   inset: 0;
   overflow: hidden;
   pointer-events: none;
 }
-
 .panel {
   border: 1px solid var(--panel-edge);
   border-radius: 16px;
@@ -52,7 +48,6 @@
   backdrop-filter: blur(8px);
   box-shadow: 0 14px 32px rgba(0, 0, 0, 0.34);
 }
-
 .eyebrow {
   margin: 0;
   color: var(--signal);
@@ -61,7 +56,6 @@
   font-size: 0.72rem;
   font-weight: 700;
 }
-
 .torque-rail {
   position: sticky;
   top: 0.55rem;
@@ -71,19 +65,16 @@
   background: linear-gradient(130deg, rgba(10, 18, 26, 0.98), rgba(17, 30, 42, 0.95));
   border-color: rgba(99, 219, 196, 0.33);
 }
-
 .rail-head {
   display: grid;
   grid-template-columns: auto minmax(180px, 1fr) auto;
   gap: 0.85rem;
   align-items: center;
 }
-
 .rail-cogs {
   display: flex;
   gap: 0.35rem;
 }
-
 .rail-status h2 {
   margin: 0.12rem 0;
   font-size: clamp(1.05rem, 2vw, 1.3rem);
@@ -91,32 +82,27 @@
   text-transform: uppercase;
   letter-spacing: 0.03em;
 }
-
 .rail-status p {
   margin: 0;
   color: var(--muted);
 }
-
 .rail-actions {
   display: flex;
   gap: 0.5rem;
   flex-wrap: wrap;
   justify-content: flex-end;
 }
-
 .rail-meters {
   display: grid;
   gap: 0.5rem;
   grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
 }
-
 .meter {
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 12px;
   background: rgba(255, 255, 255, 0.03);
   padding: 0.45rem 0.58rem;
 }
-
 .meter p {
   margin: 0;
   color: var(--muted);
@@ -124,14 +110,12 @@
   text-transform: uppercase;
   letter-spacing: 0.08em;
 }
-
 .meter strong {
   display: block;
   margin-top: 0.18rem;
   color: var(--accent);
   font-size: 1rem;
 }
-
 .rail-marquee {
   border-radius: 999px;
   border: 1px dashed rgba(255, 178, 74, 0.5);
@@ -139,7 +123,6 @@
   white-space: nowrap;
   overflow: hidden;
 }
-
 .rail-marquee p {
   margin: 0;
   padding: 0.2rem 0;
@@ -148,15 +131,12 @@
   letter-spacing: 0.14em;
   animation: loop-text 12s linear infinite;
 }
-
-
 .hero-bay {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 1rem;
   align-items: center;
 }
-
 .hero-copy h1 {
   margin: 0.2rem 0 0.5rem;
   font-family: 'Black Ops One', sans-serif;
@@ -164,20 +144,17 @@
   line-height: 0.92;
   text-transform: uppercase;
 }
-
 .hero-copy p {
   margin: 0;
   max-width: 68ch;
   color: var(--muted);
 }
-
 .hero-actions {
   margin-top: 0.85rem;
   display: flex;
   gap: 0.55rem;
   flex-wrap: wrap;
 }
-
 .hero-reactor {
   display: grid;
   gap: 0.45rem;
@@ -186,14 +163,11 @@
   justify-items: center;
   align-items: center;
 }
-
-
 .page-nav {
   display: grid;
   gap: 0.6rem;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
 }
-
 .tab-btn {
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 12px;
@@ -207,102 +181,84 @@
   cursor: pointer;
   transition: transform 150ms ease, background 150ms ease, border-color 150ms ease;
 }
-
 .tab-btn:hover {
   transform: translateY(-1px);
 }
-
 .tab-btn--active {
   border-color: rgba(255, 178, 74, 0.7);
   background: linear-gradient(135deg, rgba(255, 178, 74, 0.24), rgba(255, 178, 74, 0.1));
 }
-
 .page-shell {
   animation: page-in 260ms ease both;
 }
-
 .loading-state,
 .login-panel {
   text-align: center;
 }
-
 .loading-state h2,
 .login-panel h2 {
   margin: 0 0 0.4rem;
   font-family: 'Black Ops One', sans-serif;
   text-transform: uppercase;
 }
-
 .alert {
   display: flex;
   gap: 0.35rem;
   align-items: center;
 }
-
 .alert-error {
   border-color: rgba(255, 143, 143, 0.56);
 }
-
 .alert-info {
   border-color: rgba(99, 219, 196, 0.56);
 }
-
 .section-head h2,
 .admin-header h2 {
   margin: 0;
   font-family: 'Black Ops One', sans-serif;
   text-transform: uppercase;
 }
-
 .section-head p,
 .admin-header p {
   margin: 0.18rem 0 0.65rem;
   color: var(--muted);
 }
-
 .pilot-layout {
   display: grid;
   gap: 0.8rem;
   grid-template-columns: minmax(0, 1.35fr) minmax(250px, 1fr);
 }
-
 .pilot-card {
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 12px;
   padding: 0.75rem;
   background: rgba(255, 255, 255, 0.03);
 }
-
 .pilot-title {
   display: flex;
   gap: 0.8rem;
   align-items: center;
 }
-
 .pilot-title h3 {
   margin: 0;
   font-family: 'Black Ops One', sans-serif;
   text-transform: uppercase;
 }
-
 .pilot-title p {
   margin: 0.16rem 0 0.38rem;
   color: var(--muted);
 }
-
 .pilot-title img {
   width: 58px;
   height: 58px;
   border-radius: 50%;
   border: 2px solid rgba(255, 178, 74, 0.62);
 }
-
 .role-pills {
   display: flex;
   flex-wrap: wrap;
   gap: 0.35rem;
 }
-
 .role-pill {
   padding: 0.1rem 0.42rem;
   border-radius: 999px;
@@ -310,21 +266,18 @@
   background: rgba(99, 219, 196, 0.12);
   font-size: 0.72rem;
 }
-
 .stats-grid {
   margin-top: 0.9rem;
   display: grid;
   gap: 0.6rem;
   grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
 }
-
 .stats-grid article {
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 10px;
   padding: 0.55rem;
   background: rgba(255, 255, 255, 0.03);
 }
-
 .stats-grid h4 {
   margin: 0;
   color: var(--muted);
@@ -332,25 +285,18 @@
   letter-spacing: 0.07em;
   text-transform: uppercase;
 }
-
 .stats-grid p {
   margin: 0.25rem 0 0;
   font-size: 1.08rem;
 }
-
-
-
 .quick-nav-actions {
-  display: grid;
   gap: 0.45rem;
 }
-
 .store-grid {
   display: grid;
   gap: 0.75rem;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
 }
-
 .gear-card {
   border: 1px solid rgba(255, 178, 74, 0.28);
   border-radius: 14px;
@@ -360,35 +306,29 @@
   flex-direction: column;
   gap: 0.42rem;
 }
-
 .gear-card--ready {
   border-color: rgba(99, 219, 196, 0.5);
   box-shadow: inset 0 0 0 1px rgba(99, 219, 196, 0.22);
 }
-
 .gear-card h3,
 .gear-card p {
   margin: 0;
 }
-
 .gear-type {
   color: var(--signal);
   text-transform: uppercase;
   letter-spacing: 0.08em;
   font-size: 0.7rem;
 }
-
 .price {
   color: var(--accent);
   font-weight: 700;
 }
-
 .stock,
 .inventory-list small,
 .gear-list small {
   color: var(--muted);
 }
-
 .inventory-list {
   list-style: none;
   margin: 0.15rem 0 0;
@@ -396,7 +336,6 @@
   display: grid;
   gap: 0.42rem;
 }
-
 .inventory-list li {
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 10px;
@@ -406,18 +345,15 @@
   grid-template-columns: 1fr auto;
   gap: 0.4rem;
 }
-
 .inventory-list small {
   grid-column: 1 / -1;
 }
-
 .admin-gear-grid {
   margin-top: 0.85rem;
   display: grid;
   gap: 0.78rem;
   grid-template-columns: minmax(300px, 1.2fr) repeat(2, minmax(235px, 1fr));
 }
-
 .admin-card {
   border: 1px solid rgba(255, 178, 74, 0.25);
   border-radius: 12px;
@@ -426,22 +362,18 @@
   display: grid;
   gap: 0.5rem;
 }
-
 .ledger-card {
   grid-row: span 2;
 }
-
 .admin-card--wide {
   grid-column: 1 / -1;
 }
-
 .card-head {
   display: flex;
   justify-content: space-between;
   gap: 0.5rem;
   align-items: baseline;
 }
-
 .card-head h3,
 .forge-catalog h4 {
   margin: 0;
@@ -449,24 +381,20 @@
   text-transform: uppercase;
   font-size: 1rem;
 }
-
 .card-head span,
 .target-balance,
 th {
   color: var(--muted);
   font-size: 0.74rem;
 }
-
 .target-balance strong {
   color: var(--accent);
 }
-
 table {
   width: 100%;
   border-collapse: collapse;
   font-size: 0.85rem;
 }
-
 th,
 td {
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
@@ -474,13 +402,11 @@ td {
   text-align: left;
   vertical-align: top;
 }
-
 label {
   display: grid;
   gap: 0.24rem;
   font-size: 0.88rem;
 }
-
 input,
 select {
   border: 1px solid rgba(238, 246, 255, 0.2);
@@ -489,47 +415,39 @@ select {
   color: var(--ink);
   padding: 0.46rem;
 }
-
 input:focus,
 select:focus {
   outline: 2px solid rgba(99, 219, 196, 0.45);
   outline-offset: 1px;
 }
-
 .form-grid {
   display: grid;
   gap: 0.52rem;
   grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
 }
-
 .form-grid .wide {
   grid-column: 1 / -1;
 }
-
 .checkbox {
   display: flex;
   gap: 0.45rem;
   align-items: center;
 }
-
 .checkbox input {
   width: 18px;
   height: 18px;
   margin: 0;
 }
-
 .admin-actions {
   display: flex;
   gap: 0.5rem;
   flex-wrap: wrap;
 }
-
 .forge-layout {
   display: grid;
   gap: 0.75rem;
   grid-template-columns: minmax(290px, 1.08fr) minmax(280px, 1fr);
 }
-
 .gear-list {
   list-style: none;
   margin: 0.45rem 0 0;
@@ -537,7 +455,6 @@ select:focus {
   display: grid;
   gap: 0.42rem;
 }
-
 .gear-list li {
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 10px;
@@ -548,7 +465,6 @@ select:focus {
   justify-content: space-between;
   align-items: center;
 }
-
 .btn {
   border: none;
   color: var(--ink);
@@ -562,29 +478,23 @@ select:focus {
   cursor: pointer;
   transition: transform 140ms ease, opacity 140ms ease;
 }
-
-
 .btn:disabled {
   opacity: 0.44;
   cursor: not-allowed;
   transform: none;
 }
-
 .btn-primary {
   background: linear-gradient(135deg, var(--accent), var(--accent-deep));
   color: #26180b;
 }
-
 .btn-secondary {
   background: rgba(99, 219, 196, 0.18);
   border: 1px solid rgba(99, 219, 196, 0.45);
 }
-
 .btn-ghost {
   background: rgba(255, 255, 255, 0.08);
   border: 1px solid rgba(255, 255, 255, 0.2);
 }
-
 .gear {
   --size: 64px;
   width: var(--size);
@@ -597,7 +507,6 @@ select:focus {
     repeating-conic-gradient(from 0deg, var(--gear-a) 0 11deg, transparent 11deg 22deg);
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.09), 0 6px 14px rgba(0, 0, 0, 0.35);
 }
-
 .gear::after {
   content: '';
   position: absolute;
@@ -605,61 +514,49 @@ select:focus {
   border-radius: 50%;
   background: linear-gradient(120deg, #f7fbff, #9fb3c7);
 }
-
 .gear--sm {
   --size: 38px;
 }
-
 .gear--md {
   --size: 52px;
 }
-
 .gear--lg {
   --size: 70px;
 }
-
 .gear--xl {
   --size: 94px;
 }
-
 .gear--ghost {
   position: absolute;
   opacity: 0.16;
   pointer-events: none;
 }
-
 .g1 {
   --size: 230px;
   top: -24px;
   right: -70px;
 }
-
 .g2 {
   --size: 160px;
   bottom: 18%;
   left: -64px;
 }
-
 .g3 {
   --size: 116px;
   top: 48%;
   right: 21%;
 }
-
 .g4 {
   --size: 86px;
   top: 30%;
   left: 18%;
 }
-
 .gear-spin {
   animation: gear-spin 12s linear infinite;
 }
-
 .gear-reverse {
   animation: gear-spin 15s linear reverse infinite;
 }
-
 @keyframes gear-spin {
   from {
     transform: rotate(0deg);
@@ -668,7 +565,6 @@ select:focus {
     transform: rotate(360deg);
   }
 }
-
 @keyframes loop-text {
   from {
     transform: translateX(0);
@@ -677,7 +573,6 @@ select:focus {
     transform: translateX(-50%);
   }
 }
-
 @keyframes page-in {
   from {
     opacity: 0;
@@ -688,65 +583,52 @@ select:focus {
     transform: translateY(0);
   }
 }
-
 @media (max-width: 1160px) {
   .torque-rail {
     top: 0.42rem;
   }
-
   .rail-head {
     grid-template-columns: minmax(0, 1fr);
   }
-
   .rail-actions {
     justify-content: flex-start;
   }
-
   .hero-bay {
     grid-template-columns: minmax(0, 1fr);
   }
-
   .hero-reactor {
     justify-content: flex-start;
     grid-template-columns: auto auto auto;
     grid-template-rows: auto;
   }
-
-
   .page-nav {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
-
   .pilot-layout,
   .admin-gear-grid,
   .forge-layout {
     grid-template-columns: minmax(0, 1fr);
   }
-
   .ledger-card {
     grid-row: auto;
   }
 }
-
 @media (max-width: 760px) {
   .gearverse {
     padding: 0.85rem 0.74rem 2.4rem;
   }
-
   .panel {
     padding: 0.86rem;
   }
-
   .rail-meters {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
-
   .page-nav {
     grid-template-columns: minmax(0, 1fr);
   }
-
   .gear-list li {
     flex-direction: column;
     align-items: flex-start;
   }
 }
+
