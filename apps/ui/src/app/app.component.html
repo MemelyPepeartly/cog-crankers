@@ -1,28 +1,39 @@
-<main class="workshop-shell">
-  <div class="cog-sky" aria-hidden="true">
-    <span class="cog cog--bg cog--bg-a cog-spin"></span>
-    <span class="cog cog--bg cog--bg-b cog-reverse"></span>
-    <span class="cog cog--bg cog--bg-c cog-spin"></span>
+<main class="gearverse">
+  <div class="gearstorm" aria-hidden="true">
+    <span class="gear gear--ghost gear-spin g1"></span>
+    <span class="gear gear--ghost gear-reverse g2"></span>
+    <span class="gear gear--ghost gear-spin g3"></span>
   </div>
 
-  <section class="panel live-balance-dock">
-    <div class="dock-cogs" aria-hidden="true">
-      <span class="cog cog--small cog-spin"></span>
-      <span class="cog cog--medium cog-reverse"></span>
+  <section class="panel torque-rail">
+    <div class="rail-head">
+      <div class="rail-cogs" aria-hidden="true">
+        <span class="gear gear--sm gear-spin"></span>
+        <span class="gear gear--md gear-reverse"></span>
+      </div>
+
+      <div class="rail-status">
+        <p class="eyebrow">Session Clutch</p>
+        <h2>{{ isAuthenticated ? 'Cog Disciple Connected' : 'Disciple Disconnected' }}</h2>
+        <p *ngIf="isAuthenticated && pilot as user">Pilot: {{ user.displayName }} ({{ user.email }})</p>
+        <p *ngIf="!isAuthenticated">No active cog witness detected.</p>
+      </div>
+
+      <div class="rail-actions">
+        <button type="button" class="btn btn-secondary" (click)="refreshAll()">Check Session</button>
+        <button *ngIf="!isAuthenticated" type="button" class="btn btn-primary" (click)="signIn()">Sign In</button>
+        <button *ngIf="isAuthenticated" type="button" class="btn btn-ghost" (click)="signOut()">Sign Out</button>
+      </div>
     </div>
 
-    <div class="dock-status">
-      <p class="session-kicker">Session Clutch</p>
-      <h2>{{ isAuthenticated ? 'Signed In' : 'Signed Out' }}</h2>
-      <p *ngIf="isAuthenticated && pilot as user">Pilot: {{ user.displayName }} ({{ user.email }})</p>
-      <p *ngIf="!isAuthenticated">No active Google session detected.</p>
-      <small>API target: {{ apiBaseUrl }}</small>
-    </div>
-
-    <div class="live-meters">
+    <div class="rail-meters">
       <article class="meter">
-        <p>Live Cog Balance</p>
-        <strong>{{ liveCogBalance }}</strong>
+        <p>Live Balance</p>
+        <strong>{{ liveCogBalance }} cogs</strong>
+      </article>
+      <article class="meter">
+        <p>Locker Load</p>
+        <strong>{{ pilot?.inventory?.length ?? 0 }} gears</strong>
       </article>
       <article class="meter" *ngIf="hasAdminPanel">
         <p>Cogs In Circulation</p>
@@ -34,42 +45,49 @@
       </article>
     </div>
 
-    <div class="session-actions">
-      <button type="button" class="btn btn-secondary" (click)="refreshAll()">Check Session</button>
-      <button *ngIf="!isAuthenticated" type="button" class="btn btn-primary" (click)="signIn()">Sign In</button>
-      <button *ngIf="isAuthenticated" type="button" class="btn btn-ghost" (click)="signOut()">Sign Out</button>
+    <div class="rail-marquee">
+      <p>COG COG COG COG COG COG COG COG COG COG COG COG COG COG COG COG</p>
     </div>
+    <small class="api-target">API target: {{ apiBaseUrl }}</small>
   </section>
 
-  <header class="masthead panel">
-    <div class="masthead-copy">
-      <p class="eyebrow">Cog Slop</p>
-      <h1>Spin Up The Cog Economy</h1>
+  <header class="panel cult-banner">
+    <div class="banner-copy">
+      <p class="eyebrow">Cog Slop • Worship The Wheel</p>
+      <h1>Everything Works Like A Gear</h1>
       <p>
-        Every user is a gear in the grand machine. Admins tune the torque by granting cogs and specialty gear,
-        then pilots spend their cogs in the bazaar.
+        This is not subtle. This is not normal. This is a joke site where cogs run society,
+        cogs run commerce, and cogs probably run your taxes.
       </p>
-      <div class="masthead-actions">
+
+      <div class="chant-strip" aria-hidden="true">
+        <span>ALL HAIL THE COG</span>
+        <span>SPIN TO WIN</span>
+        <span>TEETH TOGETHER STRONG</span>
+      </div>
+
+      <div class="banner-actions">
         <button type="button" class="btn btn-secondary" (click)="refreshAll()">Recalibrate Deck</button>
         <button *ngIf="!isAuthenticated" type="button" class="btn btn-primary" (click)="signIn()">Crank In With Google</button>
       </div>
     </div>
 
-    <div class="masthead-cogs" aria-hidden="true">
-      <span class="cog cog--large cog-spin"></span>
-      <span class="cog cog--medium cog-reverse"></span>
-      <span class="cog cog--small cog-spin"></span>
+    <div class="banner-reactor" aria-hidden="true">
+      <span class="gear gear--xl gear-spin"></span>
+      <span class="gear gear--lg gear-reverse"></span>
+      <span class="gear gear--md gear-spin"></span>
     </div>
   </header>
 
   <section *ngIf="isLoading" class="panel loading-state">
-    <p>Greasing every sprocket. Stand by...</p>
+    <h2>Synchronizing Gigglebox</h2>
+    <p>The sacred gearbox is applying grease. Please stand by.</p>
   </section>
 
   <section *ngIf="!isLoading && !isAuthenticated" class="panel login-panel">
-    <h2>Workshop Access Needed</h2>
-    <p>Start with Google auth to enter the machine room.</p>
-    <button type="button" class="btn btn-primary" (click)="signIn()">Start Cog Shift</button>
+    <h2>Access Denied By The Gear Tribunal</h2>
+    <p>Present your Google credentials and receive your humble cog assignment.</p>
+    <button type="button" class="btn btn-primary" (click)="signIn()">Begin Cog Duty</button>
   </section>
 
   <section *ngIf="errorMessage" class="panel alert alert-error">
@@ -78,12 +96,12 @@
   </section>
 
   <section *ngIf="infoMessage" class="panel alert alert-info">
-    <strong>Status:</strong>
+    <strong>Machine Status:</strong>
     <span>{{ infoMessage }}</span>
   </section>
 
   <ng-container *ngIf="!isLoading && isAuthenticated && pilot as user">
-    <section class="panel pilot-panel">
+    <section class="panel profile-plate">
       <div class="pilot-title">
         <img *ngIf="user.avatarUrl" [src]="user.avatarUrl" alt="Pilot avatar" />
         <div>
@@ -106,18 +124,21 @@
         </article>
         <article>
           <h3>Admin Access</h3>
-          <p>{{ user.isAdmin ? 'Enabled' : 'Disabled' }}</p>
+          <p>{{ user.isAdmin ? 'Enabled' : 'Denied' }}</p>
         </article>
       </div>
     </section>
 
-    <section class="panel store-panel">
-      <h2>Gear Bazaar</h2>
+    <section class="panel bazaar-bay">
+      <header class="section-head">
+        <h2>Gear Bazaar</h2>
+        <p>Acquire cursed trinkets and economically questionable upgrades.</p>
+      </header>
       <div class="store-grid">
-        <article class="gear-card" *ngFor="let item of storeFront">
+        <article class="gear-card" *ngFor="let item of storeFront" [class.gear-card--ready]="item.costInCogs <= user.cogBalance">
           <p class="gear-type">{{ item.gearType }}</p>
           <h3>{{ item.name }}</h3>
-          <p>{{ item.description || item.flavorText || 'A precision-forged item for elite cog pilots.' }}</p>
+          <p>{{ item.description || item.flavorText || 'A deeply necessary cog-flavored acquisition.' }}</p>
           <p class="price">{{ item.costInCogs }} cogs</p>
           <p class="stock" *ngIf="item.stockQuantity !== null && item.stockQuantity !== undefined">
             Stock: {{ item.stockQuantity }}
@@ -133,9 +154,12 @@
       </div>
     </section>
 
-    <section class="panel inventory-panel">
-      <h2>Your Gear Locker</h2>
-      <p *ngIf="user.inventory.length === 0">No gear yet. Start spending cogs to stock your locker.</p>
+    <section class="panel locker-bay">
+      <header class="section-head">
+        <h2>Cog Locker</h2>
+        <p>Proof of every strange item you somehow justified buying.</p>
+      </header>
+      <p *ngIf="user.inventory.length === 0">Locker empty. Remedy with reckless purchases.</p>
       <ul *ngIf="user.inventory.length > 0" class="inventory-list">
         <li *ngFor="let item of user.inventory">
           <strong>{{ item.name }}</strong>
@@ -145,16 +169,14 @@
       </ul>
     </section>
 
-    <section *ngIf="hasAdminPanel" class="panel admin-panel">
+    <section *ngIf="hasAdminPanel" class="panel admin-cathedral">
       <header class="admin-header">
-        <div>
-          <p class="eyebrow">Command Deck</p>
-          <h2>Admin Control Center</h2>
-          <p>Fine-tune balances, launch grants, and keep the cog market calibrated.</p>
-        </div>
+        <p class="eyebrow">Command Gearbox</p>
+        <h2>Ridiculous Admin Control Cathedral</h2>
+        <p>Pull levers, adjust balances, pretend this is a serious financial instrument.</p>
       </header>
 
-      <div class="admin-grid">
+      <div class="admin-gear-grid">
         <article class="admin-card ledger-card">
           <div class="card-head">
             <h3>Pilot Ledger</h3>
@@ -185,10 +207,10 @@
         <article class="admin-card action-card">
           <div class="card-head">
             <h3>Cog Injector</h3>
-            <span>Balance Control</span>
+            <span>Balance Ritual</span>
           </div>
           <p class="target-balance" *ngIf="selectedGrantCogsTarget as target">
-            Target balance: <strong>{{ target.cogBalance }} cogs</strong>
+            Target current balance: <strong>{{ target.cogBalance }} cogs</strong>
           </p>
           <label>
             User
@@ -210,10 +232,10 @@
         <article class="admin-card action-card">
           <div class="card-head">
             <h3>Gear Launcher</h3>
-            <span>Inventory Control</span>
+            <span>Inventory Ritual</span>
           </div>
           <p class="target-balance" *ngIf="selectedGrantGearTarget as target">
-            Target balance: <strong>{{ target.cogBalance }} cogs</strong>
+            Target current balance: <strong>{{ target.cogBalance }} cogs</strong>
           </p>
           <label>
             User
@@ -235,13 +257,13 @@
             Note
             <input type="text" [(ngModel)]="grantGearForm.note" maxlength="300" name="grantGearNote" />
           </label>
-          <button type="button" class="btn btn-primary" (click)="grantGear()">Deploy Gear</button>
+          <button type="button" class="btn btn-primary" (click)="grantGear()">Launch Gear</button>
         </article>
 
         <article class="admin-card admin-card--wide forge-card">
           <div class="card-head">
             <h3>{{ editingGearItemId === null ? 'Forge New Gear' : 'Tune Existing Gear' }}</h3>
-            <span>Catalog Control</span>
+            <span>Catalog Ritual</span>
           </div>
 
           <div class="forge-layout">
@@ -260,7 +282,7 @@
                   <input type="number" [(ngModel)]="gearForm.costInCogs" min="0" name="gearCost" />
                 </label>
                 <label>
-                  Stock (leave blank for unlimited)
+                  Stock (blank = infinite)
                   <input type="number" [(ngModel)]="gearForm.stockQuantity" min="0" name="gearStock" />
                 </label>
                 <label class="wide">
@@ -273,7 +295,7 @@
                 </label>
                 <label class="wide checkbox">
                   <input type="checkbox" [(ngModel)]="gearForm.isActive" name="gearActive" />
-                  Available in bazaar
+                  Expose to the bazaar immediately
                 </label>
               </div>
 
@@ -305,3 +327,4 @@
     </section>
   </ng-container>
 </main>
+
