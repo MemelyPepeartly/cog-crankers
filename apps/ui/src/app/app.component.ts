@@ -96,6 +96,7 @@ export class AppComponent implements OnInit, OnDestroy {
   private lastNotifiedAutoCogOutSessionId: number | null = null;
   private cogCheckAlarmAudio: HTMLAudioElement | null = null;
   private isCogCheckAlarmBlockedByAutoplay = false;
+  private hasPlayedCogCheckAlarmForCurrentOverlay = false;
 
   async ngOnInit(): Promise<void> {
     this.initializeCogCheckAlarm();
@@ -704,6 +705,7 @@ export class AppComponent implements OnInit, OnDestroy {
 
     if (!overlayWasVisible && this.showCogCheckOverlay) {
       this.resetCogCheckHandle();
+      this.hasPlayedCogCheckAlarmForCurrentOverlay = false;
       this.startCogCheckAlarm();
     }
 
@@ -791,21 +793,23 @@ export class AppComponent implements OnInit, OnDestroy {
 
   private initializeCogCheckAlarm(): void {
     const alarm = new Audio('/assets/cog-check.mp3');
-    alarm.loop = true;
+    alarm.loop = false;
     alarm.preload = 'auto';
     alarm.volume = 0.85;
     this.cogCheckAlarmAudio = alarm;
   }
 
   private startCogCheckAlarm(): void {
-    if (!this.cogCheckAlarmAudio || !this.showCogCheckOverlay) {
+    if (!this.cogCheckAlarmAudio
+      || !this.showCogCheckOverlay
+      || this.hasPlayedCogCheckAlarmForCurrentOverlay) {
       return;
     }
 
-    this.cogCheckAlarmAudio.currentTime = 0;
     void this.cogCheckAlarmAudio.play()
       .then(() => {
         this.isCogCheckAlarmBlockedByAutoplay = false;
+        this.hasPlayedCogCheckAlarmForCurrentOverlay = true;
       })
       .catch(() => {
         this.isCogCheckAlarmBlockedByAutoplay = true;
@@ -817,7 +821,7 @@ export class AppComponent implements OnInit, OnDestroy {
       return;
     }
 
-    if (!this.cogCheckAlarmAudio.paused && !this.isCogCheckAlarmBlockedByAutoplay) {
+    if (this.hasPlayedCogCheckAlarmForCurrentOverlay && !this.isCogCheckAlarmBlockedByAutoplay) {
       return;
     }
 
@@ -832,6 +836,7 @@ export class AppComponent implements OnInit, OnDestroy {
     this.cogCheckAlarmAudio.pause();
     this.cogCheckAlarmAudio.currentTime = 0;
     this.isCogCheckAlarmBlockedByAutoplay = false;
+    this.hasPlayedCogCheckAlarmForCurrentOverlay = false;
   }
 
   private setCogCheckPageLock(isLocked: boolean): void {

@@ -30,7 +30,7 @@
   gap: 1rem;
   position: relative;
 }
-.gearverse > * {
+.gearverse > :not(.cog-check-overlay):not(.startup-loading-overlay) {
   position: relative;
   z-index: 1;
 }
