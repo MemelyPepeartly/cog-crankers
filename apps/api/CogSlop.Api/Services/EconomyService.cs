@@ -585,7 +585,8 @@ public class EconomyService(
             .OrderByDescending(x => x.CogInAtUtc)
             .FirstOrDefaultAsync(cancellationToken);
 
-        return BuildClosedCogCheckStatus(latestSession);
+        var warningIntervalMinutes = await GetWarningIntervalMinutesAsync(cancellationToken);
+        return BuildClosedCogCheckStatus(latestSession, warningIntervalMinutes);
     }
 
     public async Task<CogCheckStatusDto> CompleteCogCheckAsync(
@@ -616,7 +617,8 @@ public class EconomyService(
                 "Auto-cogged out: cog check timed out.",
                 cancellationToken);
 
-            return BuildClosedCogCheckStatus(session);
+            var warningIntervalMinutes = await GetWarningIntervalMinutesAsync(cancellationToken);
+            return BuildClosedCogCheckStatus(session, warningIntervalMinutes);
         }
 
         if (!checkState.RequiresCheck)
@@ -792,8 +794,10 @@ public class EconomyService(
             null);
     }
 
-    private static CogCheckStatusDto BuildClosedCogCheckStatus(CogSession? latestSession)
+    private static CogCheckStatusDto BuildClosedCogCheckStatus(CogSession? latestSession, int warningIntervalMinutes)
     {
+        var normalizedWarningInterval = NormalizeWarningInterval(warningIntervalMinutes);
+
         if (latestSession is null)
         {
             return new CogCheckStatusDto(
@@ -803,7 +807,7 @@ public class EconomyService(
                 CogCheckRules.SpinsRequired,
                 0,
                 0,
-                60,
+                normalizedWarningInterval,
                 null,
                 null,
                 null,
@@ -819,7 +823,7 @@ public class EconomyService(
             CogCheckRules.SpinsRequired,
             Math.Max(0, latestSession.SuccessfulCogChecks),
             Math.Max(0, latestSession.SuccessfulCogChecks),
-            NormalizeWarningInterval(latestSession.WarningIntervalMinutesAtCogIn),
+            normalizedWarningInterval,
             AsUtc(latestSession.CogInAtUtc),
             null,
             null,
