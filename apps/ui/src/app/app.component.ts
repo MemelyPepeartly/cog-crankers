@@ -36,6 +36,7 @@ export class AppComponent implements OnInit, OnDestroy {
   private readonly api = inject(EconomyApiService);
 
   isLoading = true;
+  hasCompletedInitialLoad = false;
   isAuthenticated = false;
   errorMessage = '';
   infoMessage = '';
@@ -98,6 +99,10 @@ export class AppComponent implements OnInit, OnDestroy {
 
   get pilot(): UserProfile | null {
     return this.dashboard?.pilot ?? null;
+  }
+
+  get showStartupLoadingOverlay(): boolean {
+    return this.isLoading && !this.hasCompletedInitialLoad;
   }
 
   get storeFront(): StoreItem[] {
@@ -304,6 +309,7 @@ export class AppComponent implements OnInit, OnDestroy {
       this.captureError(error, 'The cog reserve encountered a structural integrity failure.');
     } finally {
       this.isLoading = false;
+      this.hasCompletedInitialLoad = true;
     }
   }
 

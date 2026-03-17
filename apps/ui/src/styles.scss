@@ -194,6 +194,34 @@ body {
   justify-content: center;
 }
 
+.startup-loading-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1400;
+  background: rgba(6, 12, 18, 0.88);
+  backdrop-filter: blur(4px);
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+}
+
+.startup-loading-modal {
+  width: min(460px, 100%);
+  display: grid;
+  gap: 0.9rem;
+  justify-items: center;
+  text-align: center;
+}
+
+.startup-loading-modal h2,
+.startup-loading-modal p {
+  margin: 0;
+}
+
+.startup-loading-gear {
+  filter: drop-shadow(0 0 14px rgba(99, 219, 196, 0.35));
+}
+
 @media (max-width: 1160px) {
   .market-grid,
   .time-grid {

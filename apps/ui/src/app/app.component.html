@@ -104,7 +104,7 @@
     </button>
   </section>
 
-  <section *ngIf="isLoading" class="panel loading-state">
+  <section *ngIf="isLoading && !showStartupLoadingOverlay" class="panel loading-state">
     <h2>Consulting The Gearbox</h2>
     <p>The cog reserve is processing your request. Interference will not accelerate this.</p>
   </section>
@@ -665,6 +665,14 @@
           Submit Cog Check
         </button>
       </div>
+    </article>
+  </section>
+
+  <section *ngIf="showStartupLoadingOverlay" class="startup-loading-overlay" aria-live="polite" aria-busy="true">
+    <article class="panel startup-loading-modal">
+      <span class="gear gear--xl gear-spin startup-loading-gear" aria-hidden="true"></span>
+      <h2>Synchronizing Cog Profile</h2>
+      <p>Checking your last known session and loading your current cog ledger.</p>
     </article>
   </section>
 </main>
