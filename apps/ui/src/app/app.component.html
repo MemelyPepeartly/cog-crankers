@@ -395,8 +395,10 @@
           </p>
           <p *ngIf="!openCogSession" class="target-balance">You are currently cogged out.</p>
           <p class="target-balance" *ngIf="cogCheckStatus as status">
-            Warning interval: <strong>{{ status.warningIntervalMinutes }} minute(s)</strong> |
-            Required checks this shift: <strong>{{ status.requiredCogChecks }}</strong>
+            Warning interval: <strong>{{ status.warningIntervalMinutes }} minute(s)</strong>
+            <ng-container *ngIf="status.hasOpenSession">
+              | Required checks this shift: <strong>{{ status.requiredCogChecks }}</strong>
+            </ng-container>
           </p>
 
           <div class="clock-controls">
