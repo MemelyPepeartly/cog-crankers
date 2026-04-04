@@ -8,6 +8,15 @@ on:
     branches:
       - main
   workflow_dispatch:
+    inputs:
+      redeploy_reason:
+        description: "Optional reason for manual API redeploy"
+        required: false
+        default: "Manual Cog Slop API redeploy"
+
+env:
+  API_PROJECT_PATH: apps/api/CogSlop.Api/CogSlop.Api.csproj
+  PUBLISH_PATH: ${{ github.workspace }}/publish
 
 jobs:
   build:
@@ -23,17 +32,20 @@ jobs:
         with:
           dotnet-version: '10.x'
 
-      - name: Build with dotnet
-        run: dotnet build --configuration Release
+      - name: Restore API project
+        run: dotnet restore ${{ env.API_PROJECT_PATH }}
 
-      - name: dotnet publish
-        run: dotnet publish -c Release -o ${{env.DOTNET_ROOT}}/myapp
+      - name: Build API project
+        run: dotnet build ${{ env.API_PROJECT_PATH }} --configuration Release --no-restore
+
+      - name: Publish API project
+        run: dotnet publish ${{ env.API_PROJECT_PATH }} --configuration Release --no-build --output ${{ env.PUBLISH_PATH }}
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
         with:
-          name: .net-app
-          path: ${{env.DOTNET_ROOT}}/myapp
+          name: cog-slop-api
+          path: ${{ env.PUBLISH_PATH }}
 
   deploy:
     runs-on: ubuntu-latest
@@ -43,7 +55,8 @@ jobs:
       - name: Download artifact from build job
         uses: actions/download-artifact@v4
         with:
-          name: .net-app
+          name: cog-slop-api
+          path: ${{ env.PUBLISH_PATH }}
       
       - name: Deploy to Azure Web App
         id: deploy-to-webapp
@@ -51,5 +64,5 @@ jobs:
         with:
           app-name: 'cog-slop'
           slot-name: 'Production'
-          package: .
+          package: ${{ env.PUBLISH_PATH }}
           publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_79F347B5A4524D01BAFCE46C9CA6A240 }}
