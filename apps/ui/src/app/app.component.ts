@@ -267,31 +267,8 @@ export class AppComponent implements OnInit, OnDestroy {
   async refreshAll(): Promise<void> {
     this.isLoading = true;
     this.errorMessage = '';
-    let pilotProfile: UserProfile | null = null;
 
     try {
-      pilotProfile = await firstValueFrom(
-        this.api.getCurrentUserProfile().pipe(
-          catchError((error: HttpErrorResponse) => {
-            if (error.status === 401) {
-              return of(null);
-            }
-
-            throw error;
-          })
-        )
-      );
-
-      if (!pilotProfile) {
-        this.applyUnauthenticatedState('No active session. The economy continues without you.');
-        return;
-      }
-
-      if (!this.hasConfiguredDisplayName(pilotProfile.displayName)) {
-        this.beginDisplayNameOnboarding(pilotProfile);
-        return;
-      }
-
       const dashboard = await firstValueFrom(
         this.api.getDashboard().pipe(
           catchError((error: HttpErrorResponse) => {
@@ -315,11 +292,11 @@ export class AppComponent implements OnInit, OnDestroy {
       this.dashboard = dashboard;
       await this.loadMarketplaceAndSessions();
       await this.refreshCogCheckStatus();
-      this.ensureListingFormTargets();
-      this.startCogCheckPolling();
+        this.ensureListingFormTargets();
+        this.startCogCheckPolling();
 
-      if (dashboard.pilot.isAdmin) {
-        await this.loadAdminPanel();
+        if (dashboard.pilot.isAdmin) {
+          await this.loadAdminPanel();
       } else {
         this.adminUsers = [];
         this.adminGearItems = [];
@@ -330,9 +307,33 @@ export class AppComponent implements OnInit, OnDestroy {
         }
       }
     } catch (error) {
-      if (error instanceof HttpErrorResponse && error.status === 428 && pilotProfile) {
-        this.beginDisplayNameOnboarding(pilotProfile);
-        return;
+      if (error instanceof HttpErrorResponse) {
+        if (error.status === 401) {
+          this.applyUnauthenticatedState('No active session. The economy continues without you.');
+          return;
+        }
+
+        if (error.status === 428) {
+          const profile = await firstValueFrom(
+            this.api.getCurrentUserProfile().pipe(
+              catchError((meError: HttpErrorResponse) => {
+                if (meError.status === 401) {
+                  return of(null);
+                }
+
+                throw meError;
+              })
+            )
+          );
+
+          if (!profile) {
+            this.applyUnauthenticatedState('No active session. The economy continues without you.');
+            return;
+          }
+
+          this.beginDisplayNameOnboarding(profile);
+          return;
+        }
       }
 
       this.captureError(error, 'The cog reserve encountered a structural integrity failure.');

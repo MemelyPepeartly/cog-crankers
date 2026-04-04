@@ -26,6 +26,8 @@ describe('AppComponent display name flow', () => {
   it('forces onboarding when profile display name is blank', async () => {
     const fixture = TestBed.createComponent(AppComponent);
     const component = fixture.componentInstance;
+    apiSpy.getDashboard.and.returnValue(throwError(() =>
+      new HttpErrorResponse({ status: 428, statusText: 'Precondition Required' })));
     apiSpy.getCurrentUserProfile.and.returnValue(of(createUserProfile('')));
 
     await component.refreshAll();
@@ -33,13 +35,12 @@ describe('AppComponent display name flow', () => {
     expect(component.isAuthenticated).toBeTrue();
     expect(component.requiresDisplayName).toBeTrue();
     expect(component.infoMessage).toContain('Choose your display name');
-    expect(apiSpy.getDashboard).not.toHaveBeenCalled();
+    expect(apiSpy.getDashboard).toHaveBeenCalled();
   });
 
   it('handles dashboard 401 by resetting to unauthenticated state', async () => {
     const fixture = TestBed.createComponent(AppComponent);
     const component = fixture.componentInstance;
-    apiSpy.getCurrentUserProfile.and.returnValue(of(createUserProfile('Cog Citizen')));
     apiSpy.getDashboard.and.returnValue(throwError(() =>
       new HttpErrorResponse({ status: 401, statusText: 'Unauthorized' })));
 
