@@ -18,6 +18,10 @@ export interface UserProfile {
   isAdmin: boolean;
 }
 
+export interface UpdateDisplayNamePayload {
+  displayName: string;
+}
+
 export interface StoreItem {
   gearItemId: number;
   name: string;
