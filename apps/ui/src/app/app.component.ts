@@ -2,7 +2,7 @@ import { CommonModule, DOCUMENT } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { catchError, firstValueFrom, forkJoin, of } from 'rxjs';
+import { firstValueFrom, forkJoin } from 'rxjs';
 import {
   AdminUserSummary,
   CogCheckStatus,
@@ -247,9 +247,16 @@ export class AppComponent implements OnInit, OnDestroy {
     return this.activePage === page;
   }
 
-  signIn(): void {
+  async signIn(): Promise<void> {
+    this.errorMessage = '';
     this.infoMessage = 'Redirecting to identity verification...';
-    this.api.startGoogleLogin();
+
+    try {
+      await firstValueFrom(this.api.getHealth());
+      this.api.startGoogleLogin();
+    } catch (error) {
+      this.captureError(error, 'Identity verification is offline. Confirm API deployment and try again.');
+    }
   }
 
   async signOut(): Promise<void> {
@@ -269,21 +276,52 @@ export class AppComponent implements OnInit, OnDestroy {
     this.errorMessage = '';
 
     try {
-      const dashboard = await firstValueFrom(
-        this.api.getDashboard().pipe(
-          catchError((error: HttpErrorResponse) => {
-            if (error.status === 401) {
-              return of(null);
-            }
+      let profile: UserProfile;
+      try {
+        profile = await firstValueFrom(this.api.getCurrentUserProfile());
+      } catch (error) {
+        if (error instanceof HttpErrorResponse) {
+          if (error.status === 401) {
+            this.applyUnauthenticatedState('No active session. The economy continues without you.');
+            return;
+          }
 
-            throw error;
-          })
-        )
-      );
+          if (error.status === 404) {
+            this.applyUnauthenticatedState('Cog Slop API route mesh unavailable. Check deployment alignment.');
+            return;
+          }
+        }
 
-      if (!dashboard) {
-        this.applyUnauthenticatedState('No active session. The economy continues without you.');
+        throw error;
+      }
+
+      if (!this.hasConfiguredDisplayName(profile.displayName)) {
+        this.beginDisplayNameOnboarding(profile);
         return;
+      }
+
+      let dashboard: DashboardResponse;
+      try {
+        dashboard = await firstValueFrom(this.api.getDashboard());
+      } catch (error) {
+        if (error instanceof HttpErrorResponse) {
+          if (error.status === 401) {
+            this.applyUnauthenticatedState('No active session. The economy continues without you.');
+            return;
+          }
+
+          if (error.status === 428) {
+            this.beginDisplayNameOnboarding(profile);
+            return;
+          }
+
+          if (error.status === 404) {
+            this.applyUnauthenticatedState('Cog Slop API route mesh unavailable. Check deployment alignment.');
+            return;
+          }
+        }
+
+        throw error;
       }
 
       this.isAuthenticated = true;
@@ -292,11 +330,11 @@ export class AppComponent implements OnInit, OnDestroy {
       this.dashboard = dashboard;
       await this.loadMarketplaceAndSessions();
       await this.refreshCogCheckStatus();
-        this.ensureListingFormTargets();
-        this.startCogCheckPolling();
+      this.ensureListingFormTargets();
+      this.startCogCheckPolling();
 
-        if (dashboard.pilot.isAdmin) {
-          await this.loadAdminPanel();
+      if (dashboard.pilot.isAdmin) {
+        await this.loadAdminPanel();
       } else {
         this.adminUsers = [];
         this.adminGearItems = [];
@@ -307,35 +345,6 @@ export class AppComponent implements OnInit, OnDestroy {
         }
       }
     } catch (error) {
-      if (error instanceof HttpErrorResponse) {
-        if (error.status === 401) {
-          this.applyUnauthenticatedState('No active session. The economy continues without you.');
-          return;
-        }
-
-        if (error.status === 428) {
-          const profile = await firstValueFrom(
-            this.api.getCurrentUserProfile().pipe(
-              catchError((meError: HttpErrorResponse) => {
-                if (meError.status === 401) {
-                  return of(null);
-                }
-
-                throw meError;
-              })
-            )
-          );
-
-          if (!profile) {
-            this.applyUnauthenticatedState('No active session. The economy continues without you.');
-            return;
-          }
-
-          this.beginDisplayNameOnboarding(profile);
-          return;
-        }
-      }
-
       this.captureError(error, 'The cog reserve encountered a structural integrity failure.');
     } finally {
       this.isLoading = false;

@@ -8,8 +8,6 @@ function trimTrailingSlash(value: string): string {
   return value.replace(/\/+$/, '');
 }
 
-const productionApiBaseUrl = 'https://cog-slop.azurewebsites.net';
-
 function resolveApiBaseUrl(): string {
   const runtimeOverride = window.__COG_SLOP_API_BASE_URL__?.trim();
   if (runtimeOverride) {
@@ -21,7 +19,7 @@ function resolveApiBaseUrl(): string {
     return 'https://localhost:7298';
   }
 
-  return productionApiBaseUrl;
+  return trimTrailingSlash(window.location.origin);
 }
 
 export const appSettings = {

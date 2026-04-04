@@ -31,6 +31,10 @@ export class EconomyApiService {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = appSettings.apiBaseUrl;
 
+  getHealth(): Observable<{ status: string }> {
+    return this.http.get<{ status: string }>(`${this.baseUrl}/api/health`);
+  }
+
   startGoogleLogin(): void {
     window.location.assign(`${this.baseUrl}/api/auth/login`);
   }
