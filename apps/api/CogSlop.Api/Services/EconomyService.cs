@@ -13,7 +13,7 @@ public class EconomyService(
 {
     public async Task<DashboardDto> GetDashboardAsync(ClaimsPrincipal principal, CancellationToken cancellationToken)
     {
-        var user = await currentUserService.EnsureUserAsync(principal, cancellationToken);
+        var user = await currentUserService.GetExistingUserAsync(principal, cancellationToken);
         var profile = await currentUserService.BuildProfileAsync(user, cancellationToken);
         var storeItems = await GetStoreItemsAsync(includeInactive: false, cancellationToken);
 
@@ -57,7 +57,7 @@ public class EconomyService(
             throw new InvalidOperationException("You can buy between 1 and 20 gears at a time.");
         }
 
-        var user = await currentUserService.EnsureUserAsync(principal, cancellationToken);
+        var user = await currentUserService.GetExistingUserAsync(principal, cancellationToken);
 
         await using var transaction = await dbContext.Database.BeginTransactionAsync(cancellationToken);
 
@@ -145,7 +145,7 @@ public class EconomyService(
         CraftGearRequest request,
         CancellationToken cancellationToken)
     {
-        var user = await currentUserService.EnsureUserAsync(principal, cancellationToken);
+        var user = await currentUserService.GetExistingUserAsync(principal, cancellationToken);
         var name = request.Name.Trim();
         var gearType = request.GearType.Trim();
         var description = Normalize(request.Description);
@@ -244,7 +244,7 @@ public class EconomyService(
         CreateMarketplaceListingRequest request,
         CancellationToken cancellationToken)
     {
-        var user = await currentUserService.EnsureUserAsync(principal, cancellationToken);
+        var user = await currentUserService.GetExistingUserAsync(principal, cancellationToken);
 
         var inventory = await dbContext.UserInventories
             .Include(x => x.GearItem)
@@ -307,7 +307,7 @@ public class EconomyService(
         int marketplaceListingId,
         CancellationToken cancellationToken)
     {
-        var buyer = await currentUserService.EnsureUserAsync(principal, cancellationToken);
+        var buyer = await currentUserService.GetExistingUserAsync(principal, cancellationToken);
 
         await using var transaction = await dbContext.Database.BeginTransactionAsync(cancellationToken);
 
@@ -404,7 +404,7 @@ public class EconomyService(
         CogInRequest request,
         CancellationToken cancellationToken)
     {
-        var user = await currentUserService.EnsureUserAsync(principal, cancellationToken);
+        var user = await currentUserService.GetExistingUserAsync(principal, cancellationToken);
         var now = DateTime.UtcNow;
 
         var existingOpenSession = await GetOpenCogSessionAsync(user.UserAccountId, cancellationToken);
@@ -457,7 +457,7 @@ public class EconomyService(
         CogOutRequest request,
         CancellationToken cancellationToken)
     {
-        var user = await currentUserService.EnsureUserAsync(principal, cancellationToken);
+        var user = await currentUserService.GetExistingUserAsync(principal, cancellationToken);
         var now = DateTime.UtcNow;
 
         var session = await GetOpenCogSessionAsync(user.UserAccountId, cancellationToken);
@@ -510,7 +510,7 @@ public class EconomyService(
         int take,
         CancellationToken cancellationToken)
     {
-        var user = await currentUserService.EnsureUserAsync(principal, cancellationToken);
+        var user = await currentUserService.GetExistingUserAsync(principal, cancellationToken);
         await AutoCloseExpiredSessionIfNeededAsync(user.UserAccountId, DateTime.UtcNow, cancellationToken);
 
         var sessions = await dbContext.CogSessions
@@ -558,7 +558,7 @@ public class EconomyService(
         ClaimsPrincipal principal,
         CancellationToken cancellationToken)
     {
-        var user = await currentUserService.EnsureUserAsync(principal, cancellationToken);
+        var user = await currentUserService.GetExistingUserAsync(principal, cancellationToken);
         var now = DateTime.UtcNow;
 
         var openSession = await GetOpenCogSessionAsync(user.UserAccountId, cancellationToken);
@@ -599,7 +599,7 @@ public class EconomyService(
             throw new InvalidOperationException($"Spin the handle at least {CogCheckRules.SpinsRequired} times to pass cog check.");
         }
 
-        var user = await currentUserService.EnsureUserAsync(principal, cancellationToken);
+        var user = await currentUserService.GetExistingUserAsync(principal, cancellationToken);
         var now = DateTime.UtcNow;
 
         var session = await GetOpenCogSessionAsync(user.UserAccountId, cancellationToken);
