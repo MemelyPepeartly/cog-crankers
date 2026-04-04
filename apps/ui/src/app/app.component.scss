@@ -192,14 +192,21 @@
   animation: page-in 260ms ease both;
 }
 .loading-state,
-.login-panel {
+.login-panel,
+.onboarding-panel {
   text-align: center;
 }
 .loading-state h2,
-.login-panel h2 {
+.login-panel h2,
+.onboarding-panel h2 {
   margin: 0 0 0.4rem;
   font-family: 'Black Ops One', sans-serif;
   text-transform: uppercase;
+}
+.onboarding-panel p {
+  margin: 0 auto 0.8rem;
+  max-width: 72ch;
+  color: var(--muted);
 }
 .alert {
   display: flex;
@@ -253,6 +260,14 @@
   height: 58px;
   border-radius: 50%;
   border: 2px solid rgba(255, 178, 74, 0.62);
+}
+.display-name-editor {
+  margin-top: 0.8rem;
+  display: grid;
+  gap: 0.55rem;
+}
+.display-name-editor .btn {
+  justify-self: start;
 }
 .role-pills {
   display: flex;

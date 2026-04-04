@@ -16,7 +16,7 @@
       <div class="rail-status">
         <p class="eyebrow">Cog Authority Terminal</p>
         <h2>{{ isAuthenticated ? 'Citizen Verified' : 'Unregistered Entity' }}</h2>
-        <p *ngIf="isAuthenticated && pilot as user">Operator: {{ user.displayName }} ({{ user.email }})</p>
+        <p *ngIf="isAuthenticated && pilot as user">Operator: {{ pilotDisplayNameLabel }} ({{ user.email }})</p>
         <p *ngIf="!isAuthenticated">No registered cog contributor on file.</p>
       </div>
 
@@ -78,7 +78,7 @@
     </div>
   </header>
 
-  <section *ngIf="!isLoading && isAuthenticated" class="panel page-nav">
+  <section *ngIf="!isLoading && isAuthenticated && !requiresDisplayName" class="panel page-nav">
     <button type="button" class="tab-btn" [class.tab-btn--active]="isPage('pilot')" (click)="setPage('pilot')">
       My Profile
     </button>
@@ -115,6 +115,27 @@
     <button type="button" class="btn btn-primary" (click)="signIn()">Register With The Authority</button>
   </section>
 
+  <section *ngIf="!isLoading && isAuthenticated && requiresDisplayName" class="panel onboarding-panel">
+    <h2>Choose Your Display Name</h2>
+    <p>
+      Pick the name that appears on your Cog Slop profile and across marketplace listings.
+      You cannot enter the economy until this is configured.
+    </p>
+
+    <div class="display-name-editor">
+      <label>
+        Display Name
+        <input
+          type="text"
+          [(ngModel)]="displayNameDraft"
+          [maxlength]="displayNameMaxLength"
+          name="onboardingDisplayName"
+          placeholder="Enter your public cog name" />
+      </label>
+      <button type="button" class="btn btn-primary" (click)="saveDisplayName()">Enter Cog Slop</button>
+    </div>
+  </section>
+
   <section *ngIf="errorMessage" class="panel alert alert-error">
     <strong>Structural Failure:</strong>
     <span>{{ errorMessage }}</span>
@@ -125,7 +146,7 @@
     <span>{{ infoMessage }}</span>
   </section>
 
-  <ng-container *ngIf="!isLoading && isAuthenticated && pilot as user">
+  <ng-container *ngIf="!isLoading && isAuthenticated && !requiresDisplayName && pilot as user">
     <section *ngIf="isPage('pilot')" class="panel page-shell pilot-page">
       <header class="section-head">
         <h2>Citizen Holdings Report</h2>
@@ -143,6 +164,19 @@
                 <span class="role-pill" *ngFor="let role of user.roles">{{ role }}</span>
               </div>
             </div>
+          </div>
+
+          <div class="display-name-editor">
+            <label>
+              Display Name
+              <input
+                type="text"
+                [(ngModel)]="displayNameDraft"
+                [maxlength]="displayNameMaxLength"
+                name="profileDisplayName"
+                placeholder="Update your public cog name" />
+            </label>
+            <button type="button" class="btn btn-secondary" (click)="saveDisplayName()">Update Display Name</button>
           </div>
 
           <div class="stats-grid">
