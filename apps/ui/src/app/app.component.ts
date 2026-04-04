@@ -253,6 +253,12 @@ export class AppComponent implements OnInit, OnDestroy {
     this.api.startGoogleLogin();
   }
 
+  register(): void {
+    this.errorMessage = '';
+    this.infoMessage = 'Redirecting to registration and identity verification...';
+    this.api.startGoogleLogin();
+  }
+
   async signOut(): Promise<void> {
     this.errorMessage = '';
 

@@ -92,6 +92,11 @@
   flex-wrap: wrap;
   justify-content: flex-end;
 }
+.auth-cog-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.42rem;
+}
 .rail-meters {
   display: grid;
   gap: 0.5rem;
@@ -148,12 +153,6 @@
   margin: 0;
   max-width: 68ch;
   color: var(--muted);
-}
-.hero-actions {
-  margin-top: 0.85rem;
-  display: flex;
-  gap: 0.55rem;
-  flex-wrap: wrap;
 }
 .hero-reactor {
   display: grid;

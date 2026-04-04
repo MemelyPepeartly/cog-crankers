@@ -21,8 +21,19 @@
       </div>
 
       <div class="rail-actions">
-        <button *ngIf="!isAuthenticated" type="button" class="btn btn-primary" (click)="signIn()">Sign In</button>
-        <button *ngIf="isAuthenticated" type="button" class="btn btn-ghost" (click)="signOut()">Sign Out</button>
+        <ng-container *ngIf="!isAuthenticated; else authenticatedRailActions">
+          <button type="button" class="btn btn-primary auth-cog-btn" (click)="signIn()">
+            <span class="gear gear--sm gear-spin" aria-hidden="true"></span>
+            <span>Sign In</span>
+          </button>
+          <button type="button" class="btn btn-secondary auth-cog-btn" (click)="register()">
+            <span class="gear gear--sm gear-reverse" aria-hidden="true"></span>
+            <span>Register</span>
+          </button>
+        </ng-container>
+        <ng-template #authenticatedRailActions>
+          <button type="button" class="btn btn-ghost" (click)="signOut()">Sign Out</button>
+        </ng-template>
       </div>
     </div>
 
@@ -66,9 +77,6 @@
         You were born into the cog economy. You will die in the cog economy.
         The only question is how many you'll have when the gears stop turning.
       </p>
-      <div class="hero-actions">
-        <button *ngIf="!isAuthenticated" type="button" class="btn btn-primary" (click)="signIn()">Enter The Economy</button>
-      </div>
     </div>
 
     <div class="hero-reactor" aria-hidden="true">
@@ -112,7 +120,9 @@
   <section *ngIf="!isLoading && !isAuthenticated" class="panel login-panel">
     <h2>Cog Access Requires Verification</h2>
     <p>Unidentified individuals are not permitted to participate in the cog economy. This is for your protection and ours.</p>
-    <button type="button" class="btn btn-primary" (click)="signIn()">Register With The Authority</button>
+    <p class="eyebrow">
+      Use the upper-right cog controls to sign in or register.
+    </p>
   </section>
 
   <section *ngIf="!isLoading && isAuthenticated && requiresDisplayName" class="panel onboarding-panel">
