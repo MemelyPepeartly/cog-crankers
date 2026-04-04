@@ -247,16 +247,10 @@ export class AppComponent implements OnInit, OnDestroy {
     return this.activePage === page;
   }
 
-  async signIn(): Promise<void> {
+  signIn(): void {
     this.errorMessage = '';
     this.infoMessage = 'Redirecting to identity verification...';
-
-    try {
-      await firstValueFrom(this.api.getHealth());
-      this.api.startGoogleLogin();
-    } catch (error) {
-      this.captureError(error, 'Identity verification is offline. Confirm API deployment and try again.');
-    }
+    this.api.startGoogleLogin();
   }
 
   async signOut(): Promise<void> {
