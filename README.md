@@ -50,7 +50,12 @@ cmd /c npm install
 cmd /c npm start
 ```
 
-The UI runs on `http://localhost:4200` and calls the API at `https://localhost:7298` (configured in `apps/ui/src/app/app.settings.ts`).
+The UI runs on `http://localhost:4200` and calls the API at `https://localhost:7298` by default.
+`apps/ui/src/app/app.settings.ts` now resolves API base URL as:
+
+- runtime override: `window.__COG_SLOP_API_BASE_URL__` (if set)
+- local dev fallback: `https://localhost:7298`
+- otherwise: same origin as the UI host
 
 ## 5) First Admin User
 

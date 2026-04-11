@@ -8,6 +8,7 @@ namespace CogSlop.Api.Controllers;
 
 [ApiController]
 [Authorize(Policy = AuthPolicies.AdminOnly)]
+[ServiceFilter<RequireDisplayNameFilter>]
 [Route("api/[controller]")]
 public class AdminController(IAdminService adminService) : ControllerBase
 {

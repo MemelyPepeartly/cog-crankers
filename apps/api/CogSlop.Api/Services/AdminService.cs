@@ -84,7 +84,7 @@ public class AdminService(
         GrantCogsRequest request,
         CancellationToken cancellationToken)
     {
-        var admin = await currentUserService.EnsureUserAsync(adminPrincipal, cancellationToken);
+        var admin = await currentUserService.GetExistingUserAsync(adminPrincipal, cancellationToken);
         var targetUser = await dbContext.UserAccounts
             .FirstOrDefaultAsync(x => x.UserAccountId == request.UserAccountId, cancellationToken);
 
@@ -121,7 +121,7 @@ public class AdminService(
         GrantGearRequest request,
         CancellationToken cancellationToken)
     {
-        var admin = await currentUserService.EnsureUserAsync(adminPrincipal, cancellationToken);
+        var admin = await currentUserService.GetExistingUserAsync(adminPrincipal, cancellationToken);
 
         var targetUser = await dbContext.UserAccounts
             .FirstOrDefaultAsync(x => x.UserAccountId == request.UserAccountId, cancellationToken);
@@ -262,7 +262,7 @@ public class AdminService(
         UpdateCogWarningIntervalRequest request,
         CancellationToken cancellationToken)
     {
-        var admin = await currentUserService.EnsureUserAsync(adminPrincipal, cancellationToken);
+        var admin = await currentUserService.GetExistingUserAsync(adminPrincipal, cancellationToken);
 
         if (request.WarningIntervalMinutes < CogCheckRules.MinimumWarningIntervalMinutes
             || request.WarningIntervalMinutes > CogCheckRules.MaximumWarningIntervalMinutes)

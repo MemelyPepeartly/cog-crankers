@@ -43,6 +43,7 @@ builder.Services.AddScoped<ICurrentUserAccessor, CurrentUserAccessor>();
 builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
 builder.Services.AddScoped<IEconomyService, EconomyService>();
 builder.Services.AddScoped<IAdminService, AdminService>();
+builder.Services.AddScoped<RequireDisplayNameFilter>();
 builder.Services.AddScoped<IClaimsTransformation, CogClaimsTransformation>();
 
 builder.Services

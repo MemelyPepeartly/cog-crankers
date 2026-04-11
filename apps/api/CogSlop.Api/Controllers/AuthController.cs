@@ -1,4 +1,5 @@
 using CogSlop.Api.Models.Dtos;
+using CogSlop.Api.Models.Requests;
 using CogSlop.Api.Services;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -41,6 +42,27 @@ public class AuthController(
     {
         var profile = await currentUserService.GetProfileAsync(User, cancellationToken);
         return Ok(profile);
+    }
+
+    [Authorize]
+    [HttpPut("display-name")]
+    public async Task<ActionResult<UserProfileDto>> UpdateDisplayName(
+        [FromBody] UpdateDisplayNameRequest request,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var profile = await currentUserService.UpdateDisplayNameAsync(
+                User,
+                request.DisplayName,
+                cancellationToken);
+
+            return Ok(profile);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
     }
 
     [Authorize]

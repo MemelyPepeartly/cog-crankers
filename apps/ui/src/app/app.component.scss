@@ -92,6 +92,11 @@
   flex-wrap: wrap;
   justify-content: flex-end;
 }
+.auth-cog-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.42rem;
+}
 .rail-meters {
   display: grid;
   gap: 0.5rem;
@@ -149,12 +154,6 @@
   max-width: 68ch;
   color: var(--muted);
 }
-.hero-actions {
-  margin-top: 0.85rem;
-  display: flex;
-  gap: 0.55rem;
-  flex-wrap: wrap;
-}
 .hero-reactor {
   display: grid;
   gap: 0.45rem;
@@ -192,14 +191,21 @@
   animation: page-in 260ms ease both;
 }
 .loading-state,
-.login-panel {
+.login-panel,
+.onboarding-panel {
   text-align: center;
 }
 .loading-state h2,
-.login-panel h2 {
+.login-panel h2,
+.onboarding-panel h2 {
   margin: 0 0 0.4rem;
   font-family: 'Black Ops One', sans-serif;
   text-transform: uppercase;
+}
+.onboarding-panel p {
+  margin: 0 auto 0.8rem;
+  max-width: 72ch;
+  color: var(--muted);
 }
 .alert {
   display: flex;
@@ -253,6 +259,14 @@
   height: 58px;
   border-radius: 50%;
   border: 2px solid rgba(255, 178, 74, 0.62);
+}
+.display-name-editor {
+  margin-top: 0.8rem;
+  display: grid;
+  gap: 0.55rem;
+}
+.display-name-editor .btn {
+  justify-self: start;
 }
 .role-pills {
   display: flex;

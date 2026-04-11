@@ -8,6 +8,7 @@ namespace CogSlop.Api.Controllers;
 
 [ApiController]
 [Authorize]
+[ServiceFilter<RequireDisplayNameFilter>]
 [Route("api/[controller]")]
 public class EconomyController(IEconomyService economyService) : ControllerBase
 {

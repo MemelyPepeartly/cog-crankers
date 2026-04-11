@@ -2,7 +2,7 @@ import { CommonModule, DOCUMENT } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { catchError, firstValueFrom, forkJoin, of } from 'rxjs';
+import { firstValueFrom, forkJoin } from 'rxjs';
 import {
   AdminUserSummary,
   CogCheckStatus,
@@ -24,6 +24,7 @@ import { EconomyApiService } from './services/economy-api.service';
 
 type CogPage = 'pilot' | 'shop' | 'locker' | 'marketplace' | 'timecard' | 'admin';
 type LockerSort = 'quantityDesc' | 'nameAsc' | 'typeAsc' | 'valueDesc';
+const DISPLAY_NAME_MAX_LENGTH = 120;
 
 @Component({
   selector: 'app-root',
@@ -35,10 +36,13 @@ type LockerSort = 'quantityDesc' | 'nameAsc' | 'typeAsc' | 'valueDesc';
 export class AppComponent implements OnInit, OnDestroy {
   private readonly api = inject(EconomyApiService);
   private readonly documentRef = inject(DOCUMENT);
+  readonly displayNameMaxLength = DISPLAY_NAME_MAX_LENGTH;
 
   isLoading = true;
   hasCompletedInitialLoad = false;
   isAuthenticated = false;
+  requiresDisplayName = false;
+  displayNameDraft = '';
   errorMessage = '';
   infoMessage = '';
   activePage: CogPage = 'pilot';
@@ -112,6 +116,12 @@ export class AppComponent implements OnInit, OnDestroy {
 
   get pilot(): UserProfile | null {
     return this.dashboard?.pilot ?? null;
+  }
+
+  get pilotDisplayNameLabel(): string {
+    const displayName = this.pilot?.displayName ?? '';
+    const trimmed = displayName.trim();
+    return trimmed || 'Uncalibrated Citizen';
   }
 
   get showStartupLoadingOverlay(): boolean {
@@ -238,7 +248,14 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   signIn(): void {
+    this.errorMessage = '';
     this.infoMessage = 'Redirecting to identity verification...';
+    this.api.startGoogleLogin();
+  }
+
+  register(): void {
+    this.errorMessage = '';
+    this.infoMessage = 'Redirecting to registration and identity verification...';
     this.api.startGoogleLogin();
   }
 
@@ -251,21 +268,7 @@ export class AppComponent implements OnInit, OnDestroy {
       // Sign-out still proceeds client-side so the user can re-enter auth flow.
     }
 
-    this.isAuthenticated = false;
-    this.dashboard = null;
-    this.marketplaceListings = [];
-    this.cogSessionHistory = [];
-    this.cogCheckStatus = null;
-    this.showCogCheckOverlay = false;
-    this.resetCogCheckHandle();
-    this.stopCogCheckAlarm();
-    this.setCogCheckPageLock(false);
-    this.stopCogCheckPolling();
-    this.adminUsers = [];
-    this.adminGearItems = [];
-    this.cogRuntimeSettings = null;
-    this.activePage = 'pilot';
-    this.infoMessage = 'Session terminated. Your cogs remain on file with the Authority.';
+    this.applyUnauthenticatedState('Session terminated. Your cogs remain on file with the Authority.');
   }
 
   async refreshAll(): Promise<void> {
@@ -273,38 +276,57 @@ export class AppComponent implements OnInit, OnDestroy {
     this.errorMessage = '';
 
     try {
-      const dashboard = await firstValueFrom(
-        this.api.getDashboard().pipe(
-          catchError((error: HttpErrorResponse) => {
-            if (error.status === 401) {
-              return of(null);
-            }
+      let profile: UserProfile;
+      try {
+        profile = await firstValueFrom(this.api.getCurrentUserProfile());
+      } catch (error) {
+        if (error instanceof HttpErrorResponse) {
+          if (error.status === 401) {
+            this.applyUnauthenticatedState('No active session. The economy continues without you.');
+            return;
+          }
 
-            throw error;
-          })
-        )
-      );
+          if (error.status === 404) {
+            this.applyUnauthenticatedState('Cog Slop API route mesh unavailable. Check deployment alignment.');
+            return;
+          }
+        }
 
-      if (!dashboard) {
-        this.isAuthenticated = false;
-        this.dashboard = null;
-        this.marketplaceListings = [];
-        this.cogSessionHistory = [];
-        this.cogCheckStatus = null;
-        this.showCogCheckOverlay = false;
-        this.resetCogCheckHandle();
-        this.stopCogCheckAlarm();
-        this.setCogCheckPageLock(false);
-        this.stopCogCheckPolling();
-        this.adminUsers = [];
-        this.adminGearItems = [];
-        this.cogRuntimeSettings = null;
-        this.activePage = 'pilot';
-        this.infoMessage = 'No active session. The economy continues without you.';
+        throw error;
+      }
+
+      if (!this.hasConfiguredDisplayName(profile.displayName)) {
+        this.beginDisplayNameOnboarding(profile);
         return;
       }
 
+      let dashboard: DashboardResponse;
+      try {
+        dashboard = await firstValueFrom(this.api.getDashboard());
+      } catch (error) {
+        if (error instanceof HttpErrorResponse) {
+          if (error.status === 401) {
+            this.applyUnauthenticatedState('No active session. The economy continues without you.');
+            return;
+          }
+
+          if (error.status === 428) {
+            this.beginDisplayNameOnboarding(profile);
+            return;
+          }
+
+          if (error.status === 404) {
+            this.applyUnauthenticatedState('Cog Slop API route mesh unavailable. Check deployment alignment.');
+            return;
+          }
+        }
+
+        throw error;
+      }
+
       this.isAuthenticated = true;
+      this.requiresDisplayName = false;
+      this.displayNameDraft = dashboard.pilot.displayName;
       this.dashboard = dashboard;
       await this.loadMarketplaceAndSessions();
       await this.refreshCogCheckStatus();
@@ -327,6 +349,32 @@ export class AppComponent implements OnInit, OnDestroy {
     } finally {
       this.isLoading = false;
       this.hasCompletedInitialLoad = true;
+    }
+  }
+
+  async saveDisplayName(): Promise<void> {
+    const displayName = this.displayNameDraft.trim();
+    if (!displayName) {
+      this.errorMessage = 'Display name is required before entering Cog Slop.';
+      return;
+    }
+
+    if (displayName.length > this.displayNameMaxLength) {
+      this.errorMessage = `Display name must be ${this.displayNameMaxLength} characters or fewer.`;
+      return;
+    }
+
+    this.errorMessage = '';
+
+    try {
+      const profile = await firstValueFrom(this.api.updateDisplayName({ displayName }));
+      this.displayNameDraft = profile.displayName;
+      this.infoMessage = this.requiresDisplayName
+        ? 'Display name calibrated. Entering Cog Slop.'
+        : 'Display name updated.';
+      await this.refreshAll();
+    } catch (error) {
+      this.captureError(error, 'Display name update failed. Calibration denied.');
     }
   }
 
@@ -962,6 +1010,54 @@ export class AppComponent implements OnInit, OnDestroy {
     const normalized = hasOffset ? value : `${value}Z`;
     const parsed = Date.parse(normalized);
     return Number.isNaN(parsed) ? null : parsed;
+  }
+
+  private beginDisplayNameOnboarding(profile: UserProfile): void {
+    this.isAuthenticated = true;
+    this.requiresDisplayName = true;
+    this.dashboard = {
+      pilot: profile,
+      storeFront: []
+    };
+    this.displayNameDraft = '';
+    this.marketplaceListings = [];
+    this.cogSessionHistory = [];
+    this.cogCheckStatus = null;
+    this.showCogCheckOverlay = false;
+    this.resetCogCheckHandle();
+    this.stopCogCheckAlarm();
+    this.setCogCheckPageLock(false);
+    this.stopCogCheckPolling();
+    this.adminUsers = [];
+    this.adminGearItems = [];
+    this.cogRuntimeSettings = null;
+    this.activePage = 'pilot';
+    this.infoMessage = 'Choose your display name to enter the Cog Slop economy.';
+  }
+
+  private applyUnauthenticatedState(message: string): void {
+    this.isAuthenticated = false;
+    this.requiresDisplayName = false;
+    this.displayNameDraft = '';
+    this.dashboard = null;
+    this.marketplaceListings = [];
+    this.cogSessionHistory = [];
+    this.cogCheckStatus = null;
+    this.showCogCheckOverlay = false;
+    this.resetCogCheckHandle();
+    this.stopCogCheckAlarm();
+    this.setCogCheckPageLock(false);
+    this.stopCogCheckPolling();
+    this.adminUsers = [];
+    this.adminGearItems = [];
+    this.cogRuntimeSettings = null;
+    this.activePage = 'pilot';
+    this.infoMessage = message;
+  }
+
+  private hasConfiguredDisplayName(value: string | null | undefined): boolean {
+    const trimmed = value?.trim();
+    return Boolean(trimmed);
   }
 
   private createEmptyGearForm(): UpsertGearPayload {

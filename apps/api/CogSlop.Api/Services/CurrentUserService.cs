@@ -1,4 +1,3 @@
-using System.Globalization;
 using System.Security.Claims;
 using CogSlop.Api.Data;
 using CogSlop.Api.Models.Dtos;
@@ -29,7 +28,7 @@ public class CurrentUserService(
             {
                 GoogleSubject = identity.GoogleSubject,
                 Email = identity.Email,
-                DisplayName = identity.DisplayName,
+                DisplayName = string.Empty,
                 AvatarUrl = identity.AvatarUrl,
                 CreatedAtUtc = now,
                 LastLoginAtUtc = now,
@@ -52,12 +51,6 @@ public class CurrentUserService(
                 saveRequired = true;
             }
 
-            if (!string.Equals(user.DisplayName, identity.DisplayName, StringComparison.Ordinal))
-            {
-                user.DisplayName = identity.DisplayName;
-                saveRequired = true;
-            }
-
             if (!string.Equals(user.AvatarUrl, identity.AvatarUrl, StringComparison.Ordinal))
             {
                 user.AvatarUrl = identity.AvatarUrl;
@@ -77,9 +70,79 @@ public class CurrentUserService(
         return user;
     }
 
+    public async Task<UserAccount> GetExistingUserAsync(ClaimsPrincipal principal, CancellationToken cancellationToken)
+    {
+        var identity = currentUserAccessor.GetRequiredIdentity(principal);
+        UserAccount? user = null;
+
+        var userAccountIdClaim = principal.FindFirst(CogClaimTypes.UserAccountId)?.Value;
+        if (int.TryParse(userAccountIdClaim, out var userAccountId))
+        {
+            user = await dbContext.UserAccounts
+                .FirstOrDefaultAsync(x => x.UserAccountId == userAccountId, cancellationToken);
+        }
+
+        user ??= await dbContext.UserAccounts
+            .FirstOrDefaultAsync(
+                x => x.GoogleSubject == identity.GoogleSubject || x.Email == identity.Email,
+                cancellationToken);
+
+        if (user is null)
+        {
+            return await EnsureUserAsync(principal, cancellationToken);
+        }
+
+        var saveRequired = false;
+        if (!string.Equals(user.GoogleSubject, identity.GoogleSubject, StringComparison.Ordinal))
+        {
+            user.GoogleSubject = identity.GoogleSubject;
+            saveRequired = true;
+        }
+
+        if (!string.Equals(user.Email, identity.Email, StringComparison.OrdinalIgnoreCase))
+        {
+            user.Email = identity.Email;
+            saveRequired = true;
+        }
+
+        if (!string.Equals(user.AvatarUrl, identity.AvatarUrl, StringComparison.Ordinal))
+        {
+            user.AvatarUrl = identity.AvatarUrl;
+            saveRequired = true;
+        }
+
+        if (saveRequired)
+        {
+            await dbContext.SaveChangesAsync(cancellationToken);
+        }
+
+        return user;
+    }
+
     public async Task<UserProfileDto> GetProfileAsync(ClaimsPrincipal principal, CancellationToken cancellationToken)
     {
-        var user = await EnsureUserAsync(principal, cancellationToken);
+        var user = await GetExistingUserAsync(principal, cancellationToken);
+        return await BuildProfileAsync(user, cancellationToken);
+    }
+
+    public async Task<UserProfileDto> UpdateDisplayNameAsync(
+        ClaimsPrincipal principal,
+        string displayName,
+        CancellationToken cancellationToken)
+    {
+        var normalizedDisplayName = DisplayNameRules.Normalize(displayName);
+        if (normalizedDisplayName is null)
+        {
+            throw new InvalidOperationException("Display name is required before entering the cog economy.");
+        }
+
+        var user = await GetExistingUserAsync(principal, cancellationToken);
+        if (!string.Equals(user.DisplayName, normalizedDisplayName, StringComparison.Ordinal))
+        {
+            user.DisplayName = normalizedDisplayName;
+            await dbContext.SaveChangesAsync(cancellationToken);
+        }
+
         return await BuildProfileAsync(user, cancellationToken);
     }
 

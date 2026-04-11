@@ -8,7 +8,14 @@ public interface ICurrentUserService
 {
     Task<UserAccount> EnsureUserAsync(ClaimsPrincipal principal, CancellationToken cancellationToken);
 
+    Task<UserAccount> GetExistingUserAsync(ClaimsPrincipal principal, CancellationToken cancellationToken);
+
     Task<UserProfileDto> GetProfileAsync(ClaimsPrincipal principal, CancellationToken cancellationToken);
+
+    Task<UserProfileDto> UpdateDisplayNameAsync(
+        ClaimsPrincipal principal,
+        string displayName,
+        CancellationToken cancellationToken);
 
     Task<UserProfileDto> BuildProfileAsync(UserAccount user, CancellationToken cancellationToken);
 

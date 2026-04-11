@@ -18,8 +18,10 @@ import {
   MarketplacePurchaseReceipt,
   PurchaseReceipt,
   StoreItem,
+  UpdateDisplayNamePayload,
   UpdateCogWarningIntervalPayload,
-  UpsertGearPayload
+  UpsertGearPayload,
+  UserProfile
 } from '../models/economy.models';
 
 @Injectable({
@@ -35,6 +37,18 @@ export class EconomyApiService {
 
   logout(): Observable<{ message: string }> {
     return this.http.post<{ message: string }>(`${this.baseUrl}/api/auth/logout`, {}, {
+      withCredentials: true
+    });
+  }
+
+  getCurrentUserProfile(): Observable<UserProfile> {
+    return this.http.get<UserProfile>(`${this.baseUrl}/api/auth/me`, {
+      withCredentials: true
+    });
+  }
+
+  updateDisplayName(payload: UpdateDisplayNamePayload): Observable<UserProfile> {
+    return this.http.put<UserProfile>(`${this.baseUrl}/api/auth/display-name`, payload, {
       withCredentials: true
     });
   }
